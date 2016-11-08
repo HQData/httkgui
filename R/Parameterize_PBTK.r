@@ -18,6 +18,7 @@ parameterize_pbtk <- function(chem.cas=NULL,
   chem.name <- out$chem.name
    
   if(class(tissuelist)!='list') stop("tissuelist must be a list of vectors.") 
+  
   # Clint has units of uL/min/10^6 cells
   Clint <- try(get_invitroPK_param("Clint",species,chem.CAS=chem.cas),silent=T)
   if ((class(Clint) == "try-error" & default.to.human) || force.human.clint.fub) 
@@ -26,7 +27,14 @@ parameterize_pbtk <- function(chem.cas=NULL,
     warning(paste(species,"coerced to Human for metabolic clerance data."))
   }
   if (class(Clint) == "try-error") stop("Missing metabolic clearance data for given species. Set default.to.human to true to substitute human value.")
-    # Check that the trend in the CLint assay was significant:
+  
+  #try to grab Vmax and km - if they're available, use them instead of Clint
+  Vmax <- try(get_invitroPK_param("Vmax", species, chem.CAS=chem.cas), silent=TRUE)
+  km <- try(get_invitroPK_param("km", species, chem.CAS=chem.cas), silent=TRUE)
+  if((class(km) != "try-error") && (class(Vmax) != "try-error"))
+      Clint <- Vmax/km
+  
+  # Check that the trend in the CLint assay was significant:
   Clint.pValue <- get_invitroPK_param("Clint.pValue",species,chem.CAS=chem.cas)
   if (!is.na(Clint.pValue) & Clint.pValue > clint.pvalue.threshold) Clint <- 0
   

@@ -1,12 +1,13 @@
 in.list <- function(chem.cas=NULL,
                     which.list="ToxCast")
 {
-  chem.lists <- chem.lists
-  if (!(tolower(which.list) %in% tolower(names(chem.lists))))
-    stop(paste("List",which.list,"not in available lists:",paste(names(chem.lists),collapse=", ")))
+  # chem.lists <- chem.lists
+  # if (!(tolower(which.list) %in% tolower(names(chem.lists))))
+    # stop(paste("List",which.list,"not in available lists:",paste(names(chem.lists),collapse=", ")))
 
-  if (!suppressWarnings(CAS.checksum(chem.cas))) stop (paste("Chemical CAS",chem.cas,"failes checksum."))
-  return(chem.cas %in% chem.lists[tolower(names(chem.lists))==tolower(which.list)][[1]][,"CAS"])
+  # if (!suppressWarnings(CAS.checksum(chem.cas))) stop (paste("Chemical CAS",chem.cas,"failes checksum."))
+  # return(chem.cas %in% chem.lists[tolower(names(chem.lists))==tolower(which.list)][[1]][,"CAS"])
+  return(NULL)
 }
 
 is.nhanes.serum.parent <- function(chem.cas) return(in.list(chem.cas=chem.cas,which.list="NHANES.serum.parent"))

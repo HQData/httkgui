@@ -1,6 +1,10 @@
 # from Ito and Houston (2004)
-calc_hepatic_clearance <- function(chem.name=NULL,chem.cas=NULL,parameters=NULL,species='Human',hepatic.model='well-stirred',suppress.messages=F)
-{
+calc_hepatic_clearance <- function(chem.name=NULL,
+                                   chem.cas=NULL,
+                                   parameters=NULL,
+                                   species='Human',
+                                   hepatic.model='well-stirred',
+                                   suppress.messages=F) {
   model <- hepatic.model
   name.list <- c("Clint","Funbound.plasma","Qtotal.liverc","million.cells.per.gliver","Vliverc","BW","liver.density",'Fhep.assay.correction')
   if(is.null(parameters)){
@@ -29,8 +33,7 @@ calc_hepatic_clearance <- function(chem.name=NULL,chem.cas=NULL,parameters=NULL,
   if (!(tolower(model) %in% c("well-stirred","parallel tube","dispersion","unscaled")))
     stop("Model other than \"well-stirred,\" \"parallel tube,\", \"dispersion\", or \"unscaled\" specified.")
 
-  # Convert from Vmax and km to CLint (0)
-  Clint <- Vmax/km
+
   # Convert from uL/min/10^6 cells to uL/min/g-liver to uL/min/kg BW
   Clint <- Clint*million.cells.per.gliver
   # Convert from uL/min/g-liver to uL/min/kg BW
