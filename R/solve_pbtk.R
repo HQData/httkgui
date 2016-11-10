@@ -160,14 +160,25 @@ solve_pbtk <- function(chem.name = NULL,
   if(is.null(dosing.matrix)){
     if(is.null(doses.per.day)){
       out <- ode(y = state, times = times,func="derivs", parms=parameters, method=method,rtol=rtol,atol=atol,dllname="httk",initfunc="initmod", nout=length(Outputs),outnames=Outputs,...)
-    }else{
+  } else{
       length <- length(seq(start + 1/doses.per.day,end-1/doses.per.day,1/doses.per.day))
       eventdata <- data.frame(var=rep('Agutlumen',length),time = round(seq(start + 1/doses.per.day,end-1/doses.per.day,1/doses.per.day),8),value = rep(dose,length), method = rep("add",length))
       out <- ode(y = state, times = times, func="derivs", parms = parameters,method=method,rtol=rtol,atol=atol, dllname="httk",initfunc="initmod", nout=length(Outputs),outnames=Outputs,events=list(data=eventdata),...)
     }
-  }else{
+  } else{
     eventdata <- data.frame(var=rep('Agutlumen',length(dosing.times)),time = dosing.times,value = dose.vector, method = rep("add",length(dosing.times)))                          
-    out <- ode(y = state, times = times, func="derivs", parms = parameters,method=method,rtol=rtol,atol=atol, dllname="httk",initfunc="initmod", nout=length(Outputs),outnames=Outputs,events=list(data=eventdata),...)
+    out <- ode(y = state, 
+               times = times, 
+               func = "derivs", 
+               parms = parameters,
+               method = method,
+               rtol = rtol,
+               atol = atol, 
+               dllname = "httk",
+               initfunc = "initmod", 
+               nout = length(Outputs),
+               outnames = Outputs,events=list(data=eventdata),
+               ...)
   }
   
  

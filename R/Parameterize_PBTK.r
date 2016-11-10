@@ -1,17 +1,25 @@
 # This function parameterizes a PBPK model. The argument tissuelist allows the specific tissues parameerized to be customized.
 # All tissues not specified by tissuelist are lumped into a rest of body compartment ("Rest")
 
+# LASER modification adds monte.carlo option, which indicates use of CV columns (for now for physiology.data)
+# if monte.carlo = TRUE the 1st step after loading in data is going to be draw values at random, using provided CV
+# qrenal option allows to replace GFR with (GFR + tubular secretion (TS) – tubular reabsorption (TR))
 
-
-parameterize_pbtk <- function(chem.cas=NULL,
-                              chem.name=NULL,
-                              species="Human",
-                              default.to.human=F,
+parameterize_pbtk <- function(chem.cas = NULL,
+                              chem.name = NULL,
+                              species = "Human",
+                              default.to.human = F,
                               tissuelist=list(liver=c("liver"),kidney=c("kidney"),lung=c("lung"),gut=c("gut")),
                               force.human.clint.fub = F,
-                              clint.pvalue.threshold=0.05)
-{
+                              clint.pvalue.threshold = 0.05,
+                              use.qrenal = F,
+                              monte.carlo = TRUE) {
+    
   physiology.data <- physiology.data
+  
+  if(monte.carlo) physiology.data <- introduce_variability(input.mean = physiology.data, 
+                                                           input.sd = physiology.sd.data)
+  
 # Look up the chemical name/CAS, depending on what was provide:
   out <- get_chem_id(chem.cas=chem.cas,chem.name=chem.name)
   chem.cas <- out$chem.cas
@@ -31,6 +39,11 @@ parameterize_pbtk <- function(chem.cas=NULL,
   #try to grab Vmax and km - if they're available, use them instead of Clint
   Vmax <- try(get_invitroPK_param("Vmax", species, chem.CAS=chem.cas), silent=TRUE)
   km <- try(get_invitroPK_param("km", species, chem.CAS=chem.cas), silent=TRUE)
+  #in case we're using qrenal instead of GFR, grab FR and give error if it's missing:
+  if(use.qrenal) {
+      FR <- try(get_invitroPK_param("FR", species, chem.CAS=chem.cas), silent=TRUE)
+      if(class(FR) == "try-error") stop("Attempting to use renal clearance flow, but FR parameter value is missing.")
+  }
   if((class(km) != "try-error") && (class(Vmax) != "try-error"))
       Clint <- Vmax/km
   
@@ -87,17 +100,24 @@ parameterize_pbtk <- function(chem.cas=NULL,
   outlist <- list()
    # Begin flows:
   #mL/min/kgBW converted to L/h/kgBW:
-  QGFRc <- this.phys.data["GFR"]/1000*60 
-  Qcardiacc = this.phys.data["Cardiac Output"]/1000*60 
+  QGFRc <- this.phys.data[["GFR"]]/1000*60
+  Qcardiacc <- this.phys.data["Cardiac Output"]/1000*60 
   flows <- unlist(lumped_params[substr(names(lumped_params),1,1) == 'Q'])
+  
+  # LASER update: consider renal clearance flow instead
+    if(use.qrenal)
+        QGFRc <- fub*QGFRc + (flows[["Qkidneyf"]] - fub*QGFRc)*(1-exp(- (fub*QGFRc * KTS/(flows[["Qkidneyf"]]-QGFRc)) ))*(1 - FR)
+    #                                                  
 
   outlist <- c(outlist,c(
     Qcardiacc = as.numeric(Qcardiacc),
     flows[!names(flows) %in% c('Qlungf','Qtotal.liverf')],
     Qliverf= flows[['Qtotal.liverf']] - flows[['Qgutf']],
-    Qgfrc = as.numeric(QGFRc))) 
+    Qgfrc = QGFRc
+  ))
   # end flows  
   
+                                                      
   # Begin volumes
   # units should be L/kgBW  
   Vartc = this.phys.data["Plasma Volume"]/(1-this.phys.data["Hematocrit"])/2/1000 #L/kgBW
@@ -135,7 +155,6 @@ parameterize_pbtk <- function(chem.cas=NULL,
                                 Vliverc=lumped_params$Vliverc, #L/kg
                                 Qtotal.liverc=(lumped_params$Qtotal.liverc)/1000*60),suppress.messages=T)),million.cells.per.gliver=110,Fgutabs=Fgutabs)) #L/h/kg BW
   
-
     outlist <- c(outlist,Rblood2plasma=as.numeric(1 - hematocrit + hematocrit * PCs[["Krbc2pu"]] * fub))
   return(outlist[sort(names(outlist))])
 }

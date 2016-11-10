@@ -1,12 +1,22 @@
 # This function performs Monte Carlo to assess uncertainty and variability for pharmacokinetic models.
-monte_carlo <- function(params,which.quantile=0.95,cv.params=NULL,censored.params=NULL,samples=1000,name.model='calc_analytic_css',output.col.model=NA,return.samples=F,...)
-{
+
+monte_carlo <- function(params,
+                        which.quantile=0.95,
+                        cv.params=NULL,
+                        censored.params=NULL,
+                        samples=1000,
+                        name.model='calc_analytic_css',
+                        output.col.model=NA,
+                        return.samples=F,...) {
+    
 # A matrix where each column corresponds to a parameter that is varied
 # and each row is a different draw of parameter values:  
   MC.matrix <- matrix(NA,nrow=samples,ncol=(length(cv.params)+length(censored.params)))
   colnames(MC.matrix) <- c(names(cv.params),names(censored.params))
+  
 # Number of different results to be obtained for the different paramters:
   sample.vec <- rep(NA,samples)
+  
 # Any parameter given in censored params is sampled from a normal distribution truncated at zero:
   for (this.param in names(cv.params))
   {
