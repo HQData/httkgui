@@ -13,13 +13,26 @@ parameterize_pbtk <- function(chem.cas = NULL,
                               force.human.clint.fub = F,
                               clint.pvalue.threshold = 0.05,
                               use.qrenal = F,
-                              monte.carlo = TRUE) {
+                              monte.carlo = TRUE,
+                              monte.carlo.cv = NULL) {
     
   physiology.data <- physiology.data
   
-  if(monte.carlo) physiology.data <- introduce_variability(input.mean = physiology.data, 
-                                                           input.sd = physiology.sd.data)
-  
+  if(monte.carlo) {
+      if(is.null(monte.carlo.cv)) monte.carlo.cv <- c("Total Body Water" = .3,
+                                                      "Plasma Volume" = .3,
+                                                      "Cardiac Output" = .3,
+                                                      "Average BW" = .16, 
+                                                      "Total Plasma Protein" = .14,
+                                                      "Plasma albumin"= .1,
+                                                      "Plasma a-1-AGP"= .3,
+                                                      "Hematocrit"= .3,
+                                                      "Urine"= .3,
+                                                      "Bile"= .3,
+                                                      "GFR"=.3,
+                                                      "Average Body Temperature" = 0)
+      physiology.data <- introduce_variability(input.mean = physiology.data, cv = monte.carlo.cv)
+  }
 # Look up the chemical name/CAS, depending on what was provide:
   out <- get_chem_id(chem.cas=chem.cas,chem.name=chem.name)
   chem.cas <- out$chem.cas
@@ -43,6 +56,8 @@ parameterize_pbtk <- function(chem.cas = NULL,
   if(use.qrenal) {
       FR <- try(get_invitroPK_param("FR", species, chem.CAS=chem.cas), silent=TRUE)
       if(class(FR) == "try-error") stop("Attempting to use renal clearance flow, but FR parameter value is missing.")
+      KTS <- try(get_invitroPK_param("KTS", species, chem.CAS=chem.cas), silent=TRUE)
+      if(class(KTS) == "try-error") stop("Attempting to use renal clearance flow, but KTS parameter value is missing.")
   }
   if((class(km) != "try-error") && (class(Vmax) != "try-error"))
       Clint <- Vmax/km

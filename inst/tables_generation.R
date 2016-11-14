@@ -7,6 +7,7 @@ load("inst/extdata/Tables.Rdata")
 
 
 #modifications of the table structure for Vmax and km params...
+# adding mock values for Chlorpyrifos everywhere for testing
     chem.physical_and_invitro.data$Human.Vmax <- NA
     chem.physical_and_invitro.data$Human.km <- NA
     chem.physical_and_invitro.data$Rat.Vmax <- NA
@@ -15,11 +16,16 @@ load("inst/extdata/Tables.Rdata")
     chem.physical_and_invitro.data[chem.physical_and_invitro.data$Compound=="Chlorpyrifos","Human.km"] <- 2.15
     chem.physical_and_invitro.data[chem.physical_and_invitro.data$Compound=="Chlorpyrifos","Human.Vmax"] <- 5.66
 
-#...and for FR parameter
+#...and for FR, KTS parameters (renal clearance)
     chem.physical_and_invitro.data$Human.FR <- NA
     chem.physical_and_invitro.data$Rat.FR <- NA
-    chem.physical_and_invitro.data[chem.physical_and_invitro.data$Compound=="Chlorpyrifos","Human.FR"] <- .5
-    chem.physical_and_invitro.data[chem.physical_and_invitro.data$Compound=="Chlorpyrifos","Rat.FR"] <- .5
+    chem.physical_and_invitro.data[chem.physical_and_invitro.data$Compound=="Chlorpyrifos","Human.FR"] <- 0
+    chem.physical_and_invitro.data[chem.physical_and_invitro.data$Compound=="Chlorpyrifos","Rat.FR"] <- 0
+    
+    chem.physical_and_invitro.data$Human.KTS <- NA
+    chem.physical_and_invitro.data$Rat.KTS <- NA
+    chem.physical_and_invitro.data[chem.physical_and_invitro.data$Compound=="Chlorpyrifos","Human.KTS"] <- 1
+    chem.physical_and_invitro.data[chem.physical_and_invitro.data$Compound=="Chlorpyrifos","Rat.KTS"] <- 1
     
     
 #modifications of physiology.data to allow for CV:
@@ -41,3 +47,4 @@ load("inst/extdata/Tables.Rdata")
 devtools::use_data(chem.invivo.PK.data, chem.invivo.PK.summary.data, chem.physical_and_invitro.data, 
                    physiology.data, physiology.sd.data, tissue.data, Wetmore.data,
                    overwrite = TRUE)
+
