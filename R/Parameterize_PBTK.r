@@ -14,7 +14,8 @@ parameterize_pbtk <- function(chem.cas = NULL,
                               clint.pvalue.threshold = 0.05,
                               use.qrenal = F,
                               monte.carlo = TRUE,
-                              monte.carlo.cv = NULL) {
+                              monte.carlo.cv = NULL,
+                              clh.cv = NULL) {
     
   physiology.data <- physiology.data
   
@@ -159,16 +160,28 @@ parameterize_pbtk <- function(chem.cas = NULL,
   # Correct for unbound fraction of chemical in the hepatocyte intrinsic clearance assay (Kilford et al., 2008)
  outlist <- c(outlist,list(Fhep.assay.correction=calc_fu_hep(Pow,pKa_Donor=pKa_Donor,pKa_Accept=pKa_Accept)))  # fraction 
 
-  outlist <- c(outlist,
-    list(Clmetabolismc= as.numeric(calc_hepatic_clearance(hepatic.model="unscaled",parameters=list(
-                                Clint=Clint, #uL/min/10^6 cells
-                                Funbound.plasma=fub, # unitless fraction
-                                Fhep.assay.correction=outlist$Fhep.assay.correction, 
-                                million.cells.per.gliver= 110, # 10^6 cells/g-liver
-                                liver.density= 1.05, # g/mL
-                                Dn=0.17,BW=BW,
-                                Vliverc=lumped_params$Vliverc, #L/kg
-                                Qtotal.liverc=(lumped_params$Qtotal.liverc)/1000*60),suppress.messages=T)),million.cells.per.gliver=110,Fgutabs=Fgutabs)) #L/h/kg BW
+ #introduce variability to CLh
+ CLh_value <- as.numeric(calc_hepatic_clearance(hepatic.model="unscaled",
+                                              parameters=list(
+                                                  Clint=Clint, #uL/min/10^6 cells
+                                                  Funbound.plasma=fub, # unitless fraction
+                                                  Fhep.assay.correction=outlist$Fhep.assay.correction, 
+                                                  million.cells.per.gliver= 110, # 10^6 cells/g-liver
+                                                  liver.density= 1.05, # g/mL
+                                                  Dn=0.17,BW=BW,
+                                                  Vliverc=lumped_params$Vliverc, #L/kg
+                                                  Qtotal.liverc=(lumped_params$Qtotal.liverc)/1000*60),
+                                              suppress.messages=T))
+ 
+ if(!is.null(clh.cv)) {
+     clh.sd <- sqrt(log(cv.clh^2 + 1))
+     clh.mean <- log(CLh_value) - (clh.sd^2)/2 #of course, this is mean on the log scale... not E(X) (which we want == CLh_value)
+     CLh_value <- rlnorm(1, clh.mean, clh.sd)
+ }
+ outlist <- c(outlist,
+    list(Clmetabolismc= CLh_value,
+         million.cells.per.gliver=110,
+         Fgutabs=Fgutabs)) #L/h/kg BW
   
     outlist <- c(outlist,Rblood2plasma=as.numeric(1 - hematocrit + hematocrit * PCs[["Krbc2pu"]] * fub))
   return(outlist[sort(names(outlist))])
