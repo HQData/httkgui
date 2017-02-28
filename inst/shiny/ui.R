@@ -64,9 +64,13 @@ shinyUI(fluidPage(
                        )
       )),
       tabPanel("results", 
-        plotOutput("results_plot"),
+        sliderInput("display_ci", "Uncertainty interval", min = 0, max = 1, value = 0.95, step = .05),
         htmlOutput("choose_plot_ui"),
-        plotOutput("results_plot_single")
+        plotOutput("results_plot_single"),
+        plotOutput("results_plot"),
+        h3("Half-life calculations"),
+        tableOutput("results_halflife")
+        # uiOutput("results_plot_ui")
       )
     )
   ))

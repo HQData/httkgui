@@ -110,7 +110,6 @@ shinyServer(function(input, output) {
 
     })
     
-    
     results_mc <- eventReactive(input$run, {
         if(input$output_type == "mc") {
             pbtk_mclist <- list("inits"=list(), "pbtk_result"=list(), "halflife"=list())
@@ -152,7 +151,14 @@ shinyServer(function(input, output) {
                             solve_list$parameters <- inits
                             pbtk_mclist[["inits"]][[i]] <- inits
                             sol <- do.call(solve_pbtk, solve_list)
+                            
                             pbtk_mclist[["pbtk_result"]][[i]] <- sol
+                            times <- sol[,"time"]
+                            pbtk_mclist[["halflife"]][[i]] <- apply(sol[,grepl("C.", colnames(sol))], 2, function(x) {
+                                wmax <- which.max(x)
+                                wmin <- which(x < (max(x)/2))
+                                times[min(wmin[wmin > wmax])] - times[wmax]
+                            })
                          }, 
                          min = 0, max = 1)
             
@@ -166,29 +172,36 @@ shinyServer(function(input, output) {
         return(ww)
     })
     results_mc_df <- reactive({
+        lci <- (1-input$display_ci)/2
+        uci <- 1 - (1-input$display_ci)/2
         res <- apply(abind::abind(results_mc()[["pbtk_result"]], along=3), c(1,2), function(x) {
-            c("mean"=mean(x, na.rm=T), "lci"=quantile(x,.025, na.rm=T), "uci"=quantile(x,.975, na.rm=T))
+            c("mean"=mean(x, na.rm=T), "lci"=quantile(x,lci, na.rm=T), "uci"=quantile(x,uci, na.rm=T))
         })
-        # timevar <- res["mean",,"time"]
-        # select <- dimnames(res)[3][[1]][-1]
         select <- c("time", endpoints())
         if(!is.null(select)) res <- res[,,select] #you can select some of the columns only
         return(res)
     })
     
     output$results_plot <- renderPlot({
+        # 
+        res <- results_mc_df()
         if(input$output_type == "mc") {
-            res <- results_mc_df()
             timevar <- res["mean",,"time"]
             par(mfrow=c(ceiling(dim(res)[3]/3),3))
             for(cd in 1:dim(res)[3]) {
-                plot(res["mean",,cd] ~ timevar, type="l", xlab="time", ylab=dimnames(res)[3][[1]][cd])
-                polygon(c(timevar, rev(timevar)), c(res["lci.2.5%",,cd], rev(res["uci.97.5%",,cd])), col="gray", border=NA)
+                plot(res["mean",,cd] ~ timevar, type="l", 
+                     xlab="time", ylab=dimnames(res)[3][[1]][cd])
+                polygon(c(timevar, rev(timevar)), 
+                        c(res[2,,cd], rev(res[3,,cd])), 
+                        col="gray", border=NA)
                 lines(res["mean",,cd] ~ timevar, type="l", lwd=1.2)
             }
+            
         }
-        if(input$output_type == "single") 
+        if(input$output_type == "single")  {
+            par(mar=c(1,1,1,1))
             plot(results())
+        }
     })
     
     output$choose_plot_ui <- renderUI({
@@ -196,24 +209,48 @@ shinyServer(function(input, output) {
     })
     
     output$results_plot_single <- renderPlot({
+        
         if(input$output_type == "mc") {
+            
             res <- results_mc_df()
             timevar <- res["mean",,"time"]
             cd <- which(endpoints() == input$choose_plot)
             plot(res["mean",,cd] ~ timevar, type="l", xlab="time", ylab=dimnames(res)[3][[1]][cd])
-            polygon(c(timevar, rev(timevar)), c(res["lci.2.5%",,cd], rev(res["uci.97.5%",,cd])), col="gray", border=NA)
+            polygon(c(timevar, rev(timevar)), c(res[2,,cd], rev(res[3,,cd])), col="gray", border=NA)
             lines(res["mean",,cd] ~ timevar, type="l", lwd=1.2)
         }
         if(input$output_type == "single") {
             res <- results()
             cd <- which(endpoints() == input$choose_plot)
-            # browser()
-            
             plot(res[,cd] ~ res[,"time"], type="l", xlab="time", ylab=endpoints()[cd])
-            
         }
     })
     
+    output$results_plot_ui <- renderUI({
+        if(input$output_type == "mc")
+            plotOutput("results_plot")
+            # plotOutput("results_plot", height=600, width= 600)
+        if(input$output_type == "single")
+            plotOutput("results_plot", height=200, width= 600)
+        
+    })
     
-
+    output$results_halflife <- renderTable({
+        if(input$output_type == "mc") {
+            lci <- (1-input$display_ci)/2
+            uci <- 1 - (1-input$display_ci)/2
+            df <- apply(do.call(rbind, results_mc()[["halflife"]]), 2, function(x) {
+                c("lci"=quantile(x,lci, na.rm=T), "mean"=mean(x, na.rm=T), "uci"=quantile(x,uci, na.rm=T)) 
+            })    
+            rownames(df) <- c(paste0(100*lci, "%"), "mean", paste0(100*uci, "%"))
+            return(df)
+        }
+        if(input$output_type == "single") {
+            apply(results()[,grepl("C.", colnames(results()))], 2, function(x) {
+                wmax <- which.max(x)
+                wmin <- which(x < (max(x)/2))
+                times[min(wmin[wmin > wmax])] - times[wmax]
+            })    
+        }
+    }, rownames = TRUE, digits = 3)
 })
