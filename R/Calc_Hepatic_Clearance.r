@@ -15,11 +15,11 @@ calc_hepatic_clearance <- function(chem.name=NULL,
     parameters <- c(parameters,params[name.list[!(name.list %in% names(parameters))]])
   }
   Clint <- get_param("Clint",parameters,"calc_Hepatic_Clearance") # uL/min/10^6 cells
-
-    fu_hep <- get_param("Fhep.assay.correction",parameters,"calc_Hepatic_Clearance") 
-   #try(get_param("Fraction_unbound_hepatocyteassay",parameters,"calc_Hepatic_Clearance")) # fraction set if paramaterize function called with fu_hep_correct=TRUE
+  
+  fu_hep <- get_param("Fhep.assay.correction",parameters,"calc_Hepatic_Clearance") 
+  #try(get_param("Fraction_unbound_hepatocyteassay",parameters,"calc_Hepatic_Clearance")) # fraction set if paramaterize function called with fu_hep_correct=TRUE
   #if (class(fu_hep) == "try-error") fu_hep <- 1
-# Correct for fraction of chemical unbound in in vitro hepatocyte assay:
+  # Correct for fraction of chemical unbound in in vitro hepatocyte assay:
   Clint <- Clint / fu_hep
 
   fub <- get_param("Funbound.plasma",parameters,"calc_Hepatic_Clearance") # unitless fraction

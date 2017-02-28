@@ -17,7 +17,10 @@ CAS.checksum <- function(CAS.string)
 augment.table <- function(this.table,this.CAS,compound.name=NULL,this.property,value,species=NULL,reference,overwrite=F)
 {
 # In the table we create each word in most column names is capitalized:
-  exceptions <- c("Clint.pValue","logP","logMA","logPwa","MW","CAS","CAS.Checksum","pKa_Donor","pKa_Accept","SMILES.desalt","DSSTox.GSID")
+  exceptions <- c("Clint.pValue","logP","logMA","logPwa",
+                  "MW","CAS","CAS.Checksum",
+                  "pKa_Donor","pKa_Accept","SMILES.desalt","DSSTox.GSID",
+                  "Vmax", "km", "FR", "KTS")
   if (tolower(this.property) %in% tolower(exceptions)) this.property <- exceptions[tolower(exceptions)==tolower(this.property)]
   else {
     this.property <- tolower(this.property)
@@ -28,7 +31,7 @@ augment.table <- function(this.table,this.CAS,compound.name=NULL,this.property,v
   chem.phys.cols<-c("MW","logP","logPwa","pKa_Donor","pKa_Accept","logMA")
   chem.invitro.cols <- c("Clint","Clint.pValue","Funbound.plasma","Fgutabs","Rblood2plasma")
                                      
-  data.cols <- c("Reference","Species",chem.id.cols, chem.phys.cols,chem.invitro.cols)
+  data.cols <- c("Reference","Species",chem.id.cols, chem.phys.cols,chem.invitro.cols, "Vmax","km","FR","KTS")
   if (!(tolower(this.property) %in% tolower(data.cols)))
     stop(paste("Parameter", this.property,
       "not matched by columns in our data table."))
@@ -126,7 +129,11 @@ add_chemtable <- function(new.table, data.list, current.table=NULL, reference=NU
                           species=NULL, overwrite=F)
 {
 # Let's make the capitalization consistent in data.list:
-  exceptions <- c("Clint.pValue","logP","logPwa","logMA","MW","CAS","CAS.Checksum","pKa_Donor","pKa_Accept","SMILES.desalt","DSSTox.GSID")
+  exceptions <- c("Clint.pValue","logP","logPwa","logMA","MW",
+                  "CAS","CAS.Checksum",
+                  "pKa_Donor","pKa_Accept",
+                  "SMILES.desalt","DSSTox.GSID",
+                  "KTS", "FR", "Vmax", "km") #this list is additions by LASER
   for (this.name in names(data.list))
   {
     if (tolower(this.name) %in% tolower(exceptions)) this.name <- exceptions[tolower(exceptions)==tolower(this.name)]

@@ -1,0 +1,37 @@
+#httk / EFSA to-do list
+
+#DAY ONE:
+# * half-life calc's
+# * CLh addition, CLr addition
+# * apply variability to estimates -> outputs
+# * check if use log-normal dist's is working OK
+# * user-defined values of parameters -> modify add_chemtable
+
+#half-life -> to be added in Shiny
+t = 4 # time in hours at which N(t) is taken
+Nt = 3.444314 # quantity at time t (less than Cmax/2)
+N0 = 11.086042 # Cmax or peak
+halflife = t/(log((Nt/N0), 1/2))
+
+# remove use.qrenal option and automatically use FR, KTS if they are available
+# calc_renal_clearance function
+# add CLh from line 20 in cacl_total_clearance.R
+# separate function if data is available
+
+# make sure shaded area is displayed if it's done with MC
+
+# 
+
+#DAY TWO:
+# * Shiny app input/output
+
+* for MC additional input around SDs (+ show the user defaults)
+* for solve_pbtk: daily.dose, dose, doses.per.day, species, iv.dose, output.units, tsteps, days
+* coordinates in plots
+* plots side-by-side and single displays
+* choose cr interval to display (95%, 50%, custom)
+* Cmax, AUC (not over time, but total value over time of simulation), halflife as numeric outputs
+* export
+* custom compound name
+* edit input values to parameterize_pbtk
+* plot routine for mcsolve

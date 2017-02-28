@@ -4,7 +4,12 @@
 # computation-intensive for longer sims
 # (of course, this function itself is a few secs for 10,000 runs, but what about solve?)
 
-introduce_variability <- function(input.mean, input.sd=NULL, cv=NULL, dist=NULL, positive=TRUE, input.name.col = "Parameter") {
+introduce_variability <- function(input.mean, #this is table such as physiological data df
+                                  input.sd=NULL, 
+                                  cv=NULL, 
+                                  log = FALSE, #whether to use log-normal dist's
+                                  input.name.col = "Parameter") 
+{
     #vary all parameters where CV column matching names of means can be found
     whichnum <- lapply(input.mean, class) == "numeric"
     coln <- colnames(input.mean)
@@ -25,21 +30,33 @@ introduce_variability <- function(input.mean, input.sd=NULL, cv=NULL, dist=NULL,
             }))
         )
     }
-    
     if(!is.null(cv)) {
         if(!is.null(names(cv))) {
             if(!all(names(cv) %in% input.mean[[input.name.col]]))
                 stop("CV not specified for all parameters in the table.")
             cv <- cv[input.mean[[input.name.col]]]
         }
-        return(
-            data.frame(lapply(input.mean, function(x) {
-                res <- x
-                if(is.numeric(x))
-                    res <- rnorm(length(x), x, cv*x)
-                    res[res < 0] <- 0 #this simple fix mightstop crashes but generally we should consider log dist.
-                return(res)
-            }))
-        )        
+        if(log) { #use log-normal dist's
+            return(
+                data.frame(lapply(input.mean, function(x) {
+                    res <- x
+                    if(is.numeric(x)) {
+                        xsd <- sqrt(log(cv^2 + 1))
+                        res <- rlnorm(length(x), log(x) - (xsd^2)/2, xsd)
+                    }
+                    return(res)
+                }))
+            ) 
+        } else { #use normal
+            return(
+                data.frame(lapply(input.mean, function(x) {
+                    res <- x
+                    if(is.numeric(x))
+                        res <- rnorm(length(x), x, cv*x)
+                        if(any(res < 0)) cat("Lower than zero elements in Monte Carlo draw.")
+                    return(res)
+                }))
+            )   
+        }
     }
 }

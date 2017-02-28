@@ -11,10 +11,11 @@ parameterize_pbtk <- function(chem.cas = NULL,
                               default.to.human = F,
                               tissuelist=list(liver=c("liver"),kidney=c("kidney"),lung=c("lung"),gut=c("gut")),
                               force.human.clint.fub = F,
+                              clint.enzyme.data = NULL,
                               clint.pvalue.threshold = 0.05,
-                              use.qrenal = F,
-                              monte.carlo = TRUE,
-                              monte.carlo.cv = NULL,
+                              monte.carlo = FALSE,
+                              monte.carlo.log = TRUE, #whether to do draws from log-normal
+                              monte.carlo.cv = NULL, 
                               clh.cv = NULL) {
     
   physiology.data <- physiology.data
@@ -32,8 +33,11 @@ parameterize_pbtk <- function(chem.cas = NULL,
                                                       "Bile"= .3,
                                                       "GFR"=.3,
                                                       "Average Body Temperature" = 0)
-      physiology.data <- introduce_variability(input.mean = physiology.data, cv = monte.carlo.cv)
+      physiology.data <- introduce_variability(input.mean = physiology.data, 
+                                               cv = monte.carlo.cv, 
+                                               log = monte.carlo.log)
   }
+  
 # Look up the chemical name/CAS, depending on what was provide:
   out <- get_chem_id(chem.cas=chem.cas,chem.name=chem.name)
   chem.cas <- out$chem.cas
@@ -41,31 +45,34 @@ parameterize_pbtk <- function(chem.cas = NULL,
    
   if(class(tissuelist)!='list') stop("tissuelist must be a list of vectors.") 
   
+  # Clint
   # Clint has units of uL/min/10^6 cells
-  Clint <- try(get_invitroPK_param("Clint",species,chem.CAS=chem.cas),silent=T)
-  if ((class(Clint) == "try-error" & default.to.human) || force.human.clint.fub) 
-  {
-    Clint <- try(get_invitroPK_param("Clint","Human",chem.CAS=chem.cas),silent=T)
-    warning(paste(species,"coerced to Human for metabolic clerance data."))
+  if(!is.null(clint.enzyme.data)) {
+      Clint <- clint.enzyme.data[["Vmax"]]*clint.enzyme.data[["km"]]*clint.enzyme.data[["ISEF"]]
+  } else {
+      #try to grab Vmax and km - if they're available, use them instead of Clint
+      Vmax <- try(get_invitroPK_param("Vmax", species, chem.CAS=chem.cas), silent=TRUE)
+      km <- try(get_invitroPK_param("km", species, chem.CAS=chem.cas), silent=TRUE)
+      if((class(km) != "try-error") && (class(Vmax) != "try-error")) {
+          Clint <- Vmax/km
+      } else {
+          Clint <- try(get_invitroPK_param("Clint",species,chem.CAS=chem.cas),silent=T)
+          if ((class(Clint) == "try-error" & default.to.human) || force.human.clint.fub) 
+          {
+              Clint <- try(get_invitroPK_param("Clint","Human",chem.CAS=chem.cas),silent=T)
+              warning(paste(species,"coerced to Human for metabolic clerance data."))
+          }
+          if (class(Clint) == "try-error") stop("Missing metabolic clearance data for given species. Set default.to.human to true to substitute human value.")
+          
+          
+          # Check that the trend in the CLint assay was significant:
+          Clint.pValue <- get_invitroPK_param("Clint.pValue",species,chem.CAS=chem.cas)
+          if (!is.na(Clint.pValue) & Clint.pValue > clint.pvalue.threshold) Clint <- 0
+      }
   }
-  if (class(Clint) == "try-error") stop("Missing metabolic clearance data for given species. Set default.to.human to true to substitute human value.")
+
   
-  #try to grab Vmax and km - if they're available, use them instead of Clint
-  Vmax <- try(get_invitroPK_param("Vmax", species, chem.CAS=chem.cas), silent=TRUE)
-  km <- try(get_invitroPK_param("km", species, chem.CAS=chem.cas), silent=TRUE)
-  #in case we're using qrenal instead of GFR, grab FR and give error if it's missing:
-  if(use.qrenal) {
-      FR <- try(get_invitroPK_param("FR", species, chem.CAS=chem.cas), silent=TRUE)
-      if(class(FR) == "try-error") stop("Attempting to use renal clearance flow, but FR parameter value is missing.")
-      KTS <- try(get_invitroPK_param("KTS", species, chem.CAS=chem.cas), silent=TRUE)
-      if(class(KTS) == "try-error") stop("Attempting to use renal clearance flow, but KTS parameter value is missing.")
-  }
-  if((class(km) != "try-error") && (class(Vmax) != "try-error"))
-      Clint <- Vmax/km
-  
-  # Check that the trend in the CLint assay was significant:
-  Clint.pValue <- get_invitroPK_param("Clint.pValue",species,chem.CAS=chem.cas)
-  if (!is.na(Clint.pValue) & Clint.pValue > clint.pvalue.threshold) Clint <- 0
+      
   
   # unitless fraction of chemical unbound with plasma
   fub <- try(get_invitroPK_param("Funbound.plasma",species,chem.CAS=chem.cas),silent=T)
@@ -121,10 +128,11 @@ parameterize_pbtk <- function(chem.cas = NULL,
   flows <- unlist(lumped_params[substr(names(lumped_params),1,1) == 'Q'])
   
   # LASER update: consider renal clearance flow instead
-    if(use.qrenal)
-        QGFRc <- fub*QGFRc + (flows[["Qkidneyf"]] - fub*QGFRc)*(1-exp(- (fub*QGFRc * KTS/(flows[["Qkidneyf"]]-QGFRc)) ))*(1 - FR)
-    #                                                  
-
+  FR <- try(get_invitroPK_param("FR", species, chem.CAS=chem.cas), silent=TRUE)
+  KTS <- try(get_invitroPK_param("KTS", species, chem.CAS=chem.cas), silent=TRUE)
+  if((class(FR) != "try-error") && (class(KTS) != "try-error"))
+      QGFRc <- fub*QGFRc + (flows[["Qkidneyf"]] - fub*QGFRc)*(1-exp(- (fub*QGFRc * KTS/(flows[["Qkidneyf"]]-QGFRc)) ))*(1 - FR)
+    
   outlist <- c(outlist,c(
     Qcardiacc = as.numeric(Qcardiacc),
     flows[!names(flows) %in% c('Qlungf','Qtotal.liverf')],
