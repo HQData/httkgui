@@ -1,20 +1,13 @@
-/* vLiverPBPK.c for R deSolve package
-
-   ___________________________________________________
-
+/* vLiverPBPK.c for R deSolve package 
+___________________________________________________
    Model File:  vLiverPBPK.model
-
    Date:  Mon Jan 26 15:57:27 2015
-
    Created by:  "L:/Lab/NCCT_E~1/MCSim/mod/mod.exe v5.5.0"
     -- a model preprocessor by Don Maszle
-   ___________________________________________________
-
+ ___________________________________________________
    Copyright (c) 1993-2013 Free Software Foundation, Inc.
-
    Model calculations for compartmental model:
-
-   11 States:
+   11 States (A stands for quantities):
      Agutlumen = 0.0,
      Agut = 0.0,
      Aliver = 0.0,
@@ -40,9 +33,11 @@
 
    0 Inputs:
 
-   37 Parameters:
+   39 Parameters :
      BW = 70,
      CLmetabolismc = 0.203,
+		 Vmax = 2.5,
+		 Km = 12.32,     
      hematocrit = 0.44,
      kgutabs = 1,
      Kkidney2plasma = 0,
@@ -106,8 +101,8 @@
 #define ID_Cserum 0x0007
 #define ID_Aserum 0x0008
 
-/* Parameters */
-static double parms[37];
+/* Parameters  */
+static double parms[39];
 
 #define BW parms[0]
 #define CLmetabolismc parms[1]
@@ -146,28 +141,23 @@ static double parms[37];
 #define Vlung parms[34]
 #define Vrest parms[35]
 #define Vven parms[36]
+//two new additions (LASER):
+#define Vmax parms[37]
+#define Km parms[38]
+double aliver_lastterm;
 
-
-
-
-/*----- Initializers */
+/*----- Initializers */ 
 void initmod (void (* odeparms)(int *, double *))
 {
-  int N=37;
+  int N=39;
   odeparms(&N, parms);
 }
-
-
 void getParms (double *inParms, double *out, int *nout) {
 /*----- Model scaling */
-
   int i;
-
   for (i = 0; i < *nout; i++) {
     parms[i] = inParms[i];
   }
-
-
   kgutabs = kgutabs * 24 ;
   CLmetabolism = CLmetabolismc * 24 * BW ;
   Qcardiac = Qcardiacc * 24 * pow ( BW , 0.75 ) ;
@@ -192,7 +182,6 @@ void getParms (double *inParms, double *out, int *nout) {
 
 void derivs (int *neq, double *pdTime, double *y, double *ydot, double *yout, int *ip)
 {
-
   yout[ID_Cgut] = y[ID_Agut] / Vgut ;
 
   yout[ID_Cliver] = y[ID_Aliver] / Vliver ;
@@ -207,16 +196,25 @@ void derivs (int *neq, double *pdTime, double *y, double *ydot, double *yout, in
 
   yout[ID_Ckidney] = y[ID_Akidney] / Vkidney ;
 
-  yout[ID_Cserum] = y[ID_Aven] / Vven / Ratioblood2plasma ;
+  yout[ID_Cserum] = y[ID_Aven] / Vven / Ratioblood2plasma ; 
+  //(ratioblood2serum the same as for plasma)
 
   yout[ID_Aserum] = y[ID_Aven] / Ratioblood2plasma * ( 1 - hematocrit ) ;
 
   ydot[ID_Agutlumen] = - kgutabs * y[ID_Agutlumen] ;
 
   ydot[ID_Agut] = kgutabs * y[ID_Agutlumen] + Qgut * ( y[ID_Aart] / Vart - y[ID_Agut] / Vgut * Ratioblood2plasma / Kgut2plasma / Fraction_unbound_plasma ) ;
-
-  ydot[ID_Aliver] = Qliver * y[ID_Aart] / Vart + Qgut * y[ID_Agut] / Vgut * Ratioblood2plasma / Kgut2plasma / Fraction_unbound_plasma - ( Qliver + Qgut ) * y[ID_Aliver] / Vliver / Kliver2plasma / Fraction_unbound_plasma * Ratioblood2plasma - CLmetabolism * y[ID_Aliver] / Vliver / Kliver2plasma ;
-
+  
+  
+  if(Km==0) {
+      aliver_lastterm = CLmetabolism * y[ID_Aliver] / Vliver / Kliver2plasma ;
+  } else {
+      aliver_lastterm = (Vmax * y[ID_Aliver] / Vliver / Kliver2plasma) / (Km + y[ID_Aliver] / Vliver / Kliver2plasma);
+  }
+  
+  ydot[ID_Aliver] = Qliver * y[ID_Aart] / Vart + Qgut * y[ID_Agut] / Vgut * Ratioblood2plasma / Kgut2plasma / Fraction_unbound_plasma - ( Qliver + Qgut ) * y[ID_Aliver] / Vliver / Kliver2plasma / Fraction_unbound_plasma * Ratioblood2plasma - aliver_lastterm;
+      
+  
   ydot[ID_Aven] = ( ( Qliver + Qgut ) * y[ID_Aliver] / Vliver / Kliver2plasma + Qkidney * y[ID_Akidney] / Vkidney / Kkidney2plasma + Qrest * y[ID_Arest] / Vrest / Krest2plasma ) * Ratioblood2plasma / Fraction_unbound_plasma - Qcardiac * y[ID_Aven] / Vven ;
 
   ydot[ID_Alung] = Qcardiac * ( y[ID_Aven] / Vven - y[ID_Alung] / Vlung * Ratioblood2plasma / Klung2plasma / Fraction_unbound_plasma ) ;
@@ -231,7 +229,8 @@ void derivs (int *neq, double *pdTime, double *y, double *ydot, double *yout, in
 
   ydot[ID_Ametabolized] = CLmetabolism * y[ID_Aliver] / Vliver / Kliver2plasma ;
 
-  ydot[ID_AUC] = y[ID_Aven] / Vven / Ratioblood2plasma ;
+  ydot[ID_AUC] = y[ID_Aven] / Vven / Ratioblood2plasma ; 
+  //(not very helpful here or used to calculate later?)
 
 } /* derivs */
 

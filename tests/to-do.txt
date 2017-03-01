@@ -3,8 +3,6 @@
 #DAY ONE:
 # * half-life calc's
 # * CLh addition, CLr addition
-# * apply variability to estimates -> outputs
-# * check if use log-normal dist's is working OK
 # * user-defined values of parameters -> modify add_chemtable
 
 #half-life -> to be added in Shiny
@@ -25,8 +23,6 @@ halflife = t/(log((Nt/N0), 1/2))
 #DAY TWO:
 # * Shiny app input/output
 
-* for MC additional input around SDs (+ show the user defaults)
-* for solve_pbtk: daily.dose, dose, doses.per.day, species, iv.dose, output.units, tsteps, days
 * coordinates in plots
 * plots side-by-side and single displays
 * choose cr interval to display (95%, 50%, custom)
@@ -34,4 +30,3 @@ halflife = t/(log((Nt/N0), 1/2))
 * export
 * custom compound name
 * edit input values to parameterize_pbtk
-* plot routine for mcsolve

@@ -36,7 +36,9 @@ initparms <- function(newParms = NULL){
     Vliver = 0.0,
     Vlung = 0.0,
     Vrest = 0.0,
-    Vven = 0.0
+    Vven = 0.0,
+    Vmax = 0.0,
+    km = 0.0
   )
   if (!is.null(newParms)) {
     if (!all(names(newParms) %in% c(names(parms)))) {

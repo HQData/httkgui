@@ -190,7 +190,14 @@ parameterize_pbtk <- function(chem.cas = NULL,
     list(Clmetabolismc= CLh_value,
          million.cells.per.gliver=110,
          Fgutabs=Fgutabs)) #L/h/kg BW
-  
-    outlist <- c(outlist,Rblood2plasma=as.numeric(1 - hematocrit + hematocrit * PCs[["Krbc2pu"]] * fub))
-  return(outlist[sort(names(outlist))])
+ outlist <- c(outlist,Rblood2plasma=as.numeric(1 - hematocrit + hematocrit * PCs[["Krbc2pu"]] * fub))
+ 
+ #add Km and Vmax (if they don't exist, add 0 and 0)
+ if((class(km) != "try-error") && (class(Vmax) != "try-error")) {
+     outlist <- c(outlist, "Vmax"=Vmax, "km"=km)
+ } else {
+     outlist <- c(outlist[sort(names(outlist))], "Vmax"=0, "km"=0)
+ }
+ 
+  return(outlist)
 }

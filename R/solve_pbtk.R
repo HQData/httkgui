@@ -149,13 +149,18 @@ solve_pbtk <- function(chem.name = NULL,
   parameters[['Fraction_unbound_plasma']] <- parameters[['Funbound.plasma']]
   parameters[['Ratioblood2plasma']] <- parameters[['Rblood2plasma']]
   names(parameters)[substr(names(parameters),1,1) == 'K'] <- gsub('2pu','2plasma',names(parameters)[substr(names(parameters),1,1) == 'K'])
-  parameters <- initparms(parameters[!(names(parameters) %in% c('Rblood2plasma',"Fhep.assay.correction","Krbc2plasma","million.cells.per.gliver","Fgutabs","Funbound.plasma","Clmetabolismc"))])
+  # browser()
+  parameters <- initparms(parameters[!(names(parameters) %in% c('Rblood2plasma',
+                                                                "Fhep.assay.correction",
+                                                                "Krbc2plasma",
+                                                                "million.cells.per.gliver",
+                                                                "Fgutabs",
+                                                                "Funbound.plasma",
+                                                                "Clmetabolismc"))])
 
   
   state <-initState(parameters,state)
-  
-   
-     
+    
 
   if(is.null(dosing.matrix)){
     if(is.null(doses.per.day)){
