@@ -33,11 +33,65 @@ parameter_names <- c(
     "Vliverc" = "Volume of the liver per kg body weight, L/kg BW.",
     "Vlungc" = "Volume of the lungs per kg body weight, L/kg BW.",
     "Vrestc" = "Volume of the rest of the body per kg body weight, L/kg BW.",
-    "Vvenc" = "Volume of the veins per kg body weight, L/kg BW."
+    "Vvenc" = "Volume of the veins per kg body weight, L/kg BW.",
+    "Vmax" = "Maximal velocity, []",
+    "km" = "Michaelis constant"
 )
 
-shinyServer(function(input, output) {
-
+shinyServer(function(input, output, session) {
+    observeEvent(input$use_add, {
+        updateTabsetPanel(session, "main_panel",
+                          selected = ifelse(input$use_add == 1, "add compound", "parameters")
+        )
+    })
+    
+    observeEvent(input$add_submit, {
+       
+        if(input$use_add) {
+            # browser()
+        my.new.data <- data.frame(
+            'Compound' = input$add_compound, 
+            'CAS' = input$add_cas, 
+            'MW' = input$add_mw, 
+            'logp'= input$add_logp, 
+            'funbound' = input$add_funbound, 
+            'fgutabs' = input$add_fgutabs, 
+            'clint' = input$add_clint,
+            'KTS' = input$add_kts, 
+            'FR' = input$add_fr, 
+            'vmax' = input$add_vmax, 
+            'km' = input$add_km, 
+            'pKa_donor' = input$add_pka_donor, 
+            'pKa_accept' = input$add_pka_accept)
+        
+        nna.list <- as.list(na.omit(c(
+            'Compound' = 'Compound',
+            'CAS' = "CAS",
+            'MW' = ifelse(!input$add_mw_na, "MW", NA),
+            'logP' = ifelse(!input$add_logp_na, "logp", NA),
+            'Funbound.plasma' = ifelse(!input$add_funbound_na, "funbound", NA),
+            'Fgutabs' = ifelse(!input$add_fgutabs_na, "fgutabs", NA),
+            'Clint' = ifelse(!input$add_clint_na, "clint", NA),
+            'KTS' = ifelse(!input$add_kts_na, "KTS", NA),
+            'FR' = ifelse(!input$add_fr_na, "FR", NA),
+            'Vmax' = ifelse(!input$add_vmax_na, "vmax", NA),
+            'km' = ifelse(!input$add_km_na, "km", NA),
+            'pKa_Donor' = ifelse(!input$add_pka_donor_na, "pKa_donor", NA),
+            'pKa_Accept' = ifelse(!input$add_pka_accept_na, "pKa_accept", NA)
+            )))
+       
+        # 'logMA', 'Clint', 'Clint.pValue', 'Funbound.plasma', 'Fgutabs'
+        
+        chem.physical_and_invitro.data_new <<- add_chemtable(my.new.data,
+                      current.table=chem.physical_and_invitro.data,
+                      data.list=nna.list,
+                      species=input$species,
+                      reference=input$add_reference, overwrite = TRUE)
+        } else {
+            
+        }
+        
+    })
     mc_cv <- reactive(c(`Total Body Water` = input$cv.water,
                         `Plasma Volume` = input$cv.plasma,
                         `Cardiac Output` = input$cv.cardiac,
@@ -64,6 +118,12 @@ shinyServer(function(input, output) {
         if(input$use_cas) {
             param_list$chem.cas <- input$cas
             param_list$chem.name <- NULL
+        }
+        if(input$use_add && input$add_submit) {
+            chem.physical_and_invitro.data <<- chem.physical_and_invitro.data_new
+            param_list$chem.name <- paste(toupper(substr(input$add_compound, 1, 1)), 
+                                          substr(input$add_compound, 2, nchar(input$add_compound)), sep="")
+        # browser()
         }
         do.call(parameterize_pbtk, param_list)
     })

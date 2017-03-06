@@ -141,8 +141,10 @@ static double parms[39];
 #define Vlung parms[34]
 #define Vrest parms[35]
 #define Vven parms[36]
+//two new additions (LASER):
 #define Vmax parms[37]
 #define Km parms[38]
+double aliver_lastterm;
 
 /*----- Initializers */ 
 void initmod (void (* odeparms)(int *, double *))
@@ -203,9 +205,15 @@ void derivs (int *neq, double *pdTime, double *y, double *ydot, double *yout, in
 
   ydot[ID_Agut] = kgutabs * y[ID_Agutlumen] + Qgut * ( y[ID_Aart] / Vart - y[ID_Agut] / Vgut * Ratioblood2plasma / Kgut2plasma / Fraction_unbound_plasma ) ;
   
-  ydot[ID_Aliver] = Qliver * y[ID_Aart] / Vart + Qgut * y[ID_Agut] / Vgut * Ratioblood2plasma / Kgut2plasma / Fraction_unbound_plasma - ( Qliver + Qgut ) * y[ID_Aliver] / Vliver / Kliver2plasma / Fraction_unbound_plasma * Ratioblood2plasma - 
-      //CLmetabolism * y[ID_Aliver] / Vliver / Kliver2plasma ;
-      (Vmax * y[ID_Aliver] / Vliver / Kliver2plasma) / (Km + y[ID_Aliver] / Vliver / Kliver2plasma);
+  
+  if(Km==0) {
+      aliver_lastterm = CLmetabolism * y[ID_Aliver] / Vliver / Kliver2plasma ;
+  } else {
+      aliver_lastterm = (Vmax * y[ID_Aliver] / Vliver / Kliver2plasma) / (Km + y[ID_Aliver] / Vliver / Kliver2plasma);
+  }
+  
+  ydot[ID_Aliver] = Qliver * y[ID_Aart] / Vart + Qgut * y[ID_Agut] / Vgut * Ratioblood2plasma / Kgut2plasma / Fraction_unbound_plasma - ( Qliver + Qgut ) * y[ID_Aliver] / Vliver / Kliver2plasma / Fraction_unbound_plasma * Ratioblood2plasma - aliver_lastterm;
+      
   
   ydot[ID_Aven] = ( ( Qliver + Qgut ) * y[ID_Aliver] / Vliver / Kliver2plasma + Qkidney * y[ID_Akidney] / Vkidney / Kkidney2plasma + Qrest * y[ID_Arest] / Vrest / Krest2plasma ) * Ratioblood2plasma / Fraction_unbound_plasma - Qcardiac * y[ID_Aven] / Vven ;
 

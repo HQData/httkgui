@@ -37,7 +37,6 @@ parameterize_pbtk <- function(chem.cas = NULL,
                                                cv = monte.carlo.cv, 
                                                log = monte.carlo.log)
   }
-  
 # Look up the chemical name/CAS, depending on what was provide:
   out <- get_chem_id(chem.cas=chem.cas,chem.name=chem.name)
   chem.cas <- out$chem.cas

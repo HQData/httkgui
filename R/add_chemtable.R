@@ -42,7 +42,6 @@ augment.table <- function(this.table,this.CAS,compound.name=NULL,this.property,v
   if ((this.property %in% chem.invitro.cols) & is.null(species)) stop("Either \
 argument \"species\" must be set for whole table or \"Species\" must be \
 matched to a \"new.table\" column in argument \"data.list\".")
-
   if (!is.null(compound.name))
   {
     compound.name <- tolower(compound.name)

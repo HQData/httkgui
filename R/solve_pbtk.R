@@ -149,7 +149,7 @@ solve_pbtk <- function(chem.name = NULL,
   parameters[['Fraction_unbound_plasma']] <- parameters[['Funbound.plasma']]
   parameters[['Ratioblood2plasma']] <- parameters[['Rblood2plasma']]
   names(parameters)[substr(names(parameters),1,1) == 'K'] <- gsub('2pu','2plasma',names(parameters)[substr(names(parameters),1,1) == 'K'])
-  # browser()
+  
   parameters <- initparms(parameters[!(names(parameters) %in% c('Rblood2plasma',
                                                                 "Fhep.assay.correction",
                                                                 "Krbc2plasma",
@@ -161,7 +161,6 @@ solve_pbtk <- function(chem.name = NULL,
   
   state <-initState(parameters,state)
     
-
   if(is.null(dosing.matrix)){
     if(is.null(doses.per.day)){
       out <- ode(y = state, times = times,func="derivs", parms=parameters, method=method,rtol=rtol,atol=atol,dllname="httk",initfunc="initmod", nout=length(Outputs),outnames=Outputs,...)
@@ -210,12 +209,16 @@ solve_pbtk <- function(chem.name = NULL,
   if(!suppress.messages){
     if(is.null(chem.cas) & is.null(chem.name)){
       cat("Values returned in",output.units,"units.\n")
-    }else cat(paste(toupper(substr(species,1,1)),substr(species,2,nchar(species)),sep=''),"values returned in",output.units,"units.\n")
+    }else cat(paste(toupper(substr(species,1,1)),substr(species,2,nchar(species)),sep=''),
+              "values returned in",output.units,"units.\n")
     if(tolower(output.units) == 'mg'){
-      cat("AUC is area under plasma concentration in mg/L * days units with Rblood2plasma =",parameters[['Ratioblood2plasma']],".\n")
+      cat("AUC is area under plasma concentration in mg/L * days units with Rblood2plasma =",
+          parameters[['Ratioblood2plasma']],".\n")
     }else if(tolower(output.units) == 'umol'){
-      cat("AUC is area under plasma concentration in uM * days units with Rblood2plasma =",parameters[['Ratioblood2plasma']],".\n")
-    }else cat("AUC is area under plasma concentration curve in",output.units,"* days units with Rblood2plasma =",parameters[['Ratioblood2plasma']],".\n")
+      cat("AUC is area under plasma concentration in uM * days units with Rblood2plasma =",
+          parameters[['Ratioblood2plasma']],".\n")
+    }else cat("AUC is area under plasma concentration curve in",output.units,
+              "* days units with Rblood2plasma =",parameters[['Ratioblood2plasma']],".\n")
   }
     
   return(out) 
