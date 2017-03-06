@@ -1,7 +1,3 @@
-
-library(shiny)
-library(httk)
-
 nSimulations <- 1000
 parameter_names <- c(
     "BW" = "Body Weight, kg.",
@@ -38,7 +34,8 @@ parameter_names <- c(
     "km" = "Michaelis constant"
 )
 
-shinyServer(function(input, output, session) {
+
+shiny::shinyServer(function(input, output, session) {
     observeEvent(input$use_add, {
         updateTabsetPanel(session, "main_panel",
                           selected = ifelse(input$use_add == 1, "add compound", "parameters")
@@ -92,6 +89,35 @@ shinyServer(function(input, output, session) {
         }
         
     })
+    
+    
+    observeEvent(input$cparams_submit, {
+        #add a row:
+        newdata <- data.frame("parameter"=input$cparams_select, 
+                              "description"=parameter_names[input$cparams_select], 
+                              "value"=input$cparams_value, 
+                              "MC 2.5%" = NA, 
+                              "MC mean" = NA, 
+                              "MC 97.5%" = NA)
+        if(exists("custom_param_values")) {
+            #remove the last existing value if it was in there
+            custom_param_values <<- custom_param_values[custom_param_values$parameter != input$cparams_select,]
+            custom_param_values <<- rbind(custom_param_values, 
+                                          newdata
+            )
+        } else {
+            custom_param_values <- newdata
+        }
+        #clean the inputs
+        updateNumericInput(session, "cparams_value", value = 0)
+    })
+    # custom_param_values <- data.frame("parameter"=c(), "description"=c(), "value"=c(), 
+                                      # "MC 2.5%"=c(), "MC mean"=c(), "MC 97.5%"=c())
+    output$custom_param_table <- renderTable({
+        input$cparams_submit
+        custom_param_values
+    })
+    
     mc_cv <- reactive(c(`Total Body Water` = input$cv.water,
                         `Plasma Volume` = input$cv.plasma,
                         `Cardiac Output` = input$cv.cardiac,
@@ -125,12 +151,25 @@ shinyServer(function(input, output, session) {
                                           substr(input$add_compound, 2, nchar(input$add_compound)), sep="")
         # browser()
         }
-        do.call(parameterize_pbtk, param_list)
+        inits <- do.call(parameterize_pbtk, param_list)
+        
+        
+        #update if user supplied custom values
+        input$cparams_submit
+        if(exists("custom_param_values") && nrow(custom_param_values) > 0) {
+            torep <- custom_param_values$value
+            names(torep) <- custom_param_values$parameter
+            inits[names(torep)] <- torep
+        }
+        return(inits)
+        
     })
         
     output$parameters_df <- renderTable({
+        # 
         ww <- parameters()
         parameter_df <- data.frame("parameter"=names(ww), "description" = parameter_names, "value"=unlist(ww))
+        
         # if(input$output_type == "single")
         if(input$output_type == "mc") {
             #expand the data frame with uncertainty info:
@@ -202,7 +241,7 @@ shinyServer(function(input, output, session) {
                 solve_list$doses.per.day=input$solve.doses
                 solve_list$dose=input$solve.dose
             }
-                
+            
             withProgress(message = "Calculation in progress", 
                          detail = paste0("Performing ", input$nSimulations, " Monte Carlo estimates"),
                          for(i in 1:input$nSimulations) {
@@ -214,11 +253,11 @@ shinyServer(function(input, output, session) {
                             
                             pbtk_mclist[["pbtk_result"]][[i]] <- sol
                             times <- sol[,"time"]
-                            pbtk_mclist[["halflife"]][[i]] <- apply(sol[,grepl("C.", colnames(sol))], 2, function(x) {
-                                wmax <- which.max(x)
-                                wmin <- which(x < (max(x)/2))
-                                times[min(wmin[wmin > wmax])] - times[wmax]
-                            })
+                            x <- sol[,"Cplasma"]
+                            wmax <- which.max(x)
+                            wmin <- which(x < (max(x)/2))
+                            pbtk_mclist[["halflife"]][[i]] <- times[min(wmin[wmin > wmax])] - times[wmax]
+                            
                          }, 
                          min = 0, max = 1)
             
@@ -227,8 +266,10 @@ shinyServer(function(input, output, session) {
     })
     
     endpoints <- reactive({
-        ww <- c("Cplasma", paste0("C", input$compartments), "Crest", "Ametabolized", "Atubules", "Agutlumen")
-        names(ww) <- c("Plasma", input$compartments, "rest", "metabolized", "tubules", "gut lumen")
+        # ww <- c("Cplasma", paste0("C", input$compartments), "Crest", "Ametabolized", "Atubules", "Agutlumen")
+        ww <- c("Cplasma", paste0("C", c("lung", "kidney", "gut", "liver")), "Crest", "Ametabolized", "Atubules", "Agutlumen")
+        # names(ww) <- c("Plasma", input$compartments, "rest", "metabolized", "tubules", "gut lumen")
+        names(ww) <- c("Plasma", c("lung", "kidney", "gut", "liver"), "rest", "metabolized", "tubules", "gut lumen")
         return(ww)
     })
     results_mc_df <- reactive({
@@ -269,20 +310,21 @@ shinyServer(function(input, output, session) {
     })
     
     output$results_plot_single <- renderPlot({
-        
-        if(input$output_type == "mc") {
-            
-            res <- results_mc_df()
-            timevar <- res["mean",,"time"]
-            cd <- which(endpoints() == input$choose_plot)
-            plot(res["mean",,cd] ~ timevar, type="l", xlab="time", ylab=dimnames(res)[3][[1]][cd])
-            polygon(c(timevar, rev(timevar)), c(res[2,,cd], rev(res[3,,cd])), col="gray", border=NA)
-            lines(res["mean",,cd] ~ timevar, type="l", lwd=1.2)
-        }
-        if(input$output_type == "single") {
-            res <- results()
-            cd <- which(endpoints() == input$choose_plot)
-            plot(res[,cd] ~ res[,"time"], type="l", xlab="time", ylab=endpoints()[cd])
+        if(!is.null(input$choose_plot)) {
+            if(input$output_type == "mc") {
+                res <- results_mc_df()
+                timevar <- res["mean",,"time"]
+                cd <- which(endpoints() == input$choose_plot)
+                plot(res["mean",,cd] ~ timevar, type="l", xlab="time", ylab=dimnames(res)[3][[1]][cd])
+                polygon(c(timevar, rev(timevar)), c(res[2,,cd], rev(res[3,,cd])), col="gray", border=NA)
+                lines(res["mean",,cd] ~ timevar, type="l", lwd=1.2)
+            }
+            if(input$output_type == "single") {
+                # browser()
+                res <- results()
+                cd <- which(endpoints() == input$choose_plot)
+                plot(res[,cd] ~ res[,"time"], type="l", xlab="time", ylab=endpoints()[cd])
+            }
         }
     })
     
@@ -303,14 +345,18 @@ shinyServer(function(input, output, session) {
                 c("lci"=quantile(x,lci, na.rm=T), "mean"=mean(x, na.rm=T), "uci"=quantile(x,uci, na.rm=T)) 
             })    
             rownames(df) <- c(paste0(100*lci, "%"), "mean", paste0(100*uci, "%"))
+            # browser()
             return(df)
         }
         if(input$output_type == "single") {
-            apply(results()[,grepl("C.", colnames(results()))], 2, function(x) {
+            if(!is.null(results())) {
+                times <- results()[,"time"]
+                x <- results()[,"Cplasma"]
                 wmax <- which.max(x)
                 wmin <- which(x < (max(x)/2))
-                times[min(wmin[wmin > wmax])] - times[wmax]
-            })    
+                tt <- times[min(wmin[wmin > wmax])] - times[wmax]
+                return(data.frame("Cplasma" = tt))
+            }
         }
     }, rownames = TRUE, digits = 3)
 })

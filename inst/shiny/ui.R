@@ -1,10 +1,8 @@
 
-library(shiny)
-
 compartment_names <- c("lung", "kidney", "gut", "liver")
 
 
-shinyUI(fluidPage(
+shiny::shinyUI(fluidPage(
 
   # Application title
   titlePanel("httk UI for PBTK models"),
@@ -47,6 +45,26 @@ shinyUI(fluidPage(
     mainPanel(tabsetPanel(id="main_panel",
       tabPanel("parameters", 
         # HTML("Input parameters:"),
+        h3("PBTK model parameter values"),
+        checkboxInput("custom_params", "Check here to manually change parameter values", 0),
+        conditionalPanel("input.custom_params == 1",
+                         em("To erase user-defined values, please restart the application"),
+                         
+                         fluidRow(
+                             column(4, selectInput("cparams_select", "Parameter name", names(parameter_names))),
+                             column(2, numericInput("cparams_value", "Mean value", 0)),
+                             
+                             conditionalPanel("input.output_type == 'mc'",
+                                              column(2, numericInput("cparams_lci", "2.5% value", 0)),
+                                              column(2, numericInput("cparams_uci", "97.5% value", 0))
+                             )
+                         ),
+                         actionButton("cparams_submit", "Submit values"),
+                         tableOutput("custom_param_table"),
+                         h3("Original parameter values"),
+                         em("These values will be replaced by user-defined values.")
+        ),
+        
         tableOutput("parameters_df")
       ),
       tabPanel("add compound",
@@ -95,7 +113,7 @@ shinyUI(fluidPage(
       tabPanel("Monte Carlo settings", 
         conditionalPanel("input.output_type == 'mc'", 
                        h3("Define Monte Carlo simulation parameters"),
-                       numericInput("nSimulations", "Number of draws", 500),
+                       numericInput("nSimulations", "Number of draws", 50),
                        checkboxInput("mc_use_log", "Use log-normal distributions", 1),
                        h3("Coefficient of variation values"),
                        column(4,
