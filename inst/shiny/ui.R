@@ -1,6 +1,39 @@
 
-compartment_names <- c("lung", "kidney", "gut", "liver")
-
+# compartment_names <- c("lung", "kidney", "gut", "liver")
+parameter_names <- c(
+    "BW" = "Body Weight, kg.",
+    "Clmetabolismc" = "Hepatic Clearance, L/h/kg BW.",
+    "Fgutabs" = "Fraction of the oral dose absorbed, i.e. the fraction of the dose that enters the gutlumen.",
+    "Funbound.plasma" = "Fraction of plasma that is not bound.",
+    "Fhep.assay.correction" = "The fraction of chemical unbound in hepatocyte assay using the method of Kilford et al. (2008)",
+    "hematocrit" = "Percent volume of red blood cells in the blood.",
+    "kdermabs" = "Rate that chemical is transferred from the skin to the blood, 1/h.",
+    "Kgut2pu" = "Ratio of concentration of chemical in gut tissue to unbound concentration in plasma.",
+    "kgutabs" = "Rate that chemical enters the gut from gutlumen, 1/h.",
+    "kinhabs" = "Rate that the chemical is transferred from the lungs to the blood, 1/h.",
+    "Kkidney2pu" = "Ratio of concentration of chemical in kidney tissue to unbound concentration in plasma.",
+    "Kliver2pu" = "Ratio of concentration of chemical in liver tissue to unbound concentration in plasma.",
+    "Klung2pu" = "Ratio of concentration of chemical in lung tissue to unbound concentration in plasma.",
+    "Krbc2pu" = "Ratio of concentration of chemical in red blood cells to unbound concentration in plasma.",
+    "Krest2pu" = "Ratio of concentration of chemical in rest of body tissue to unbound concentration in plasma.",
+    "million.cells.per.gliver" = "Millions cells per gram of liver tissue.",
+    "MW" = "Molecular Weight, g/mol.",
+    "Qcardiacc" = "Cardiac Output, L/h/kg BW^3/4.",
+    "Qgfrc" = "Glomerular Filtration Rate, L/h/kg BW^3/4, volume of fluid filtered from kidney and excreted.",
+    "Qgutf" = "Fraction of cardiac output flowing to the gut.",
+    "Qkidneyf" = "Fraction of cardiac output flowing to the kidneys.",
+    "Qliverf" = "Fraction of cardiac output flowing to the liver.",
+    "Rblood2plasma" = "The ratio of the concentration of the chemical in the blood to the concentration in the plasma.",
+    "Vartc" = "Volume of the arteries per kg body weight, L/kg BW.",
+    "Vgutc" = "Volume of the gut per kg body weight, L/kg BW.",
+    "Vkidneyc" = "Volume of the kidneys per kg body weight, L/kg BW.",
+    "Vliverc" = "Volume of the liver per kg body weight, L/kg BW.",
+    "Vlungc" = "Volume of the lungs per kg body weight, L/kg BW.",
+    "Vrestc" = "Volume of the rest of the body per kg body weight, L/kg BW.",
+    "Vvenc" = "Volume of the veins per kg body weight, L/kg BW.",
+    "Vmax" = "Maximal velocity, []",
+    "km" = "Michaelis constant"
+)
 
 shiny::shinyUI(fluidPage(
 
@@ -44,7 +77,6 @@ shiny::shinyUI(fluidPage(
     # Show a plot of the generated distribution
     mainPanel(tabsetPanel(id="main_panel",
       tabPanel("parameters", 
-        # HTML("Input parameters:"),
         h3("PBTK model parameter values"),
         checkboxInput("custom_params", "Check here to manually change parameter values", 0),
         conditionalPanel("input.custom_params == 1",
@@ -73,7 +105,7 @@ shiny::shinyUI(fluidPage(
                                 column(4,
                                     textInput("add_compound", "Compound name", ""),
                                     textInput("add_cas", "Compound CAS", ""),
-                                    textInput("add_reference", "Reference", value=""),
+                                    textInput("add_reference", "Reference(s)", value=""),
                                     HTML("Species can be selected in the input panel on the left <br><br>"),
                                     HTML("<em>If data is not available, please check the NA box instead of inputting a value.</em> <br><br>"),
                                     actionButton("add_submit", "Submit")
@@ -137,12 +169,15 @@ shiny::shinyUI(fluidPage(
                            "Please select Monte Carlo mode on the left to define parameter variability.")
       ),
       tabPanel("results", 
-        sliderInput("display_ci", "Uncertainty interval", min = 0, max = 1, value = 0.95, step = .05),
+        h3("Presentation of results of PBTK model"),
+        conditionalPanel("input.output_type == 'mc'", 
+            sliderInput("display_ci", "Uncertainty interval", min = 0, max = 1, value = 0.95, step = .05)),
         htmlOutput("choose_plot_ui"),
         plotOutput("results_plot_single"),
-        plotOutput("results_plot"),
-        h3("Half-life calculations"),
-        tableOutput("results_halflife")
+        h3("Half-life, AUC, maximum calculations"),
+        tableOutput("results_numerical"),
+        plotOutput("results_plot")
+        
         # uiOutput("results_plot_ui")
       )
     )

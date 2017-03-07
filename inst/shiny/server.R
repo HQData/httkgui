@@ -1,41 +1,42 @@
-nSimulations <- 1000
-parameter_names <- c(
-    "BW" = "Body Weight, kg.",
-    "Clmetabolismc" = "Hepatic Clearance, L/h/kg BW.",
-    "Fgutabs" = "Fraction of the oral dose absorbed, i.e. the fraction of the dose that enters the gutlumen.",
-    "Funbound.plasma" = "Fraction of plasma that is not bound.",
-    "Fhep.assay.correction" = "The fraction of chemical unbound in hepatocyte assay using the method of Kilford et al. (2008)",
-    "hematocrit" = "Percent volume of red blood cells in the blood.",
-    "kdermabs" = "Rate that chemical is transferred from the skin to the blood, 1/h.",
-    "Kgut2pu" = "Ratio of concentration of chemical in gut tissue to unbound concentration in plasma.",
-    "kgutabs" = "Rate that chemical enters the gut from gutlumen, 1/h.",
-    "kinhabs" = "Rate that the chemical is transferred from the lungs to the blood, 1/h.",
-    "Kkidney2pu" = "Ratio of concentration of chemical in kidney tissue to unbound concentration in plasma.",
-    "Kliver2pu" = "Ratio of concentration of chemical in liver tissue to unbound concentration in plasma.",
-    "Klung2pu" = "Ratio of concentration of chemical in lung tissue to unbound concentration in plasma.",
-    "Krbc2pu" = "Ratio of concentration of chemical in red blood cells to unbound concentration in plasma.",
-    "Krest2pu" = "Ratio of concentration of chemical in rest of body tissue to unbound concentration in plasma.",
-    "million.cells.per.gliver" = "Millions cells per gram of liver tissue.",
-    "MW" = "Molecular Weight, g/mol.",
-    "Qcardiacc" = "Cardiac Output, L/h/kg BW^3/4.",
-    "Qgfrc" = "Glomerular Filtration Rate, L/h/kg BW^3/4, volume of fluid filtered from kidney and excreted.",
-    "Qgutf" = "Fraction of cardiac output flowing to the gut.",
-    "Qkidneyf" = "Fraction of cardiac output flowing to the kidneys.",
-    "Qliverf" = "Fraction of cardiac output flowing to the liver.",
-    "Rblood2plasma" = "The ratio of the concentration of the chemical in the blood to the concentration in the plasma.",
-    "Vartc" = "Volume of the arteries per kg body weight, L/kg BW.",
-    "Vgutc" = "Volume of the gut per kg body weight, L/kg BW.",
-    "Vkidneyc" = "Volume of the kidneys per kg body weight, L/kg BW.",
-    "Vliverc" = "Volume of the liver per kg body weight, L/kg BW.",
-    "Vlungc" = "Volume of the lungs per kg body weight, L/kg BW.",
-    "Vrestc" = "Volume of the rest of the body per kg body weight, L/kg BW.",
-    "Vvenc" = "Volume of the veins per kg body weight, L/kg BW.",
-    "Vmax" = "Maximal velocity, []",
-    "km" = "Michaelis constant"
-)
 
 
 shiny::shinyServer(function(input, output, session) {
+
+    parameter_names <- c(
+        "BW" = "Body Weight, kg.",
+        "Clmetabolismc" = "Hepatic Clearance, L/h/kg BW.",
+        "Fgutabs" = "Fraction of the oral dose absorbed, i.e. the fraction of the dose that enters the gutlumen.",
+        "Funbound.plasma" = "Fraction of plasma that is not bound.",
+        "Fhep.assay.correction" = "The fraction of chemical unbound in hepatocyte assay using the method of Kilford et al. (2008)",
+        "hematocrit" = "Percent volume of red blood cells in the blood.",
+        "kdermabs" = "Rate that chemical is transferred from the skin to the blood, 1/h.",
+        "Kgut2pu" = "Ratio of concentration of chemical in gut tissue to unbound concentration in plasma.",
+        "kgutabs" = "Rate that chemical enters the gut from gutlumen, 1/h.",
+        "kinhabs" = "Rate that the chemical is transferred from the lungs to the blood, 1/h.",
+        "Kkidney2pu" = "Ratio of concentration of chemical in kidney tissue to unbound concentration in plasma.",
+        "Kliver2pu" = "Ratio of concentration of chemical in liver tissue to unbound concentration in plasma.",
+        "Klung2pu" = "Ratio of concentration of chemical in lung tissue to unbound concentration in plasma.",
+        "Krbc2pu" = "Ratio of concentration of chemical in red blood cells to unbound concentration in plasma.",
+        "Krest2pu" = "Ratio of concentration of chemical in rest of body tissue to unbound concentration in plasma.",
+        "million.cells.per.gliver" = "Millions cells per gram of liver tissue.",
+        "MW" = "Molecular Weight, g/mol.",
+        "Qcardiacc" = "Cardiac Output, L/h/kg BW^3/4.",
+        "Qgfrc" = "Glomerular Filtration Rate, L/h/kg BW^3/4, volume of fluid filtered from kidney and excreted.",
+        "Qgutf" = "Fraction of cardiac output flowing to the gut.",
+        "Qkidneyf" = "Fraction of cardiac output flowing to the kidneys.",
+        "Qliverf" = "Fraction of cardiac output flowing to the liver.",
+        "Rblood2plasma" = "The ratio of the concentration of the chemical in the blood to the concentration in the plasma.",
+        "Vartc" = "Volume of the arteries per kg body weight, L/kg BW.",
+        "Vgutc" = "Volume of the gut per kg body weight, L/kg BW.",
+        "Vkidneyc" = "Volume of the kidneys per kg body weight, L/kg BW.",
+        "Vliverc" = "Volume of the liver per kg body weight, L/kg BW.",
+        "Vlungc" = "Volume of the lungs per kg body weight, L/kg BW.",
+        "Vrestc" = "Volume of the rest of the body per kg body weight, L/kg BW.",
+        "Vvenc" = "Volume of the veins per kg body weight, L/kg BW.",
+        "Vmax" = "Maximal velocity, []",
+        "km" = "Michaelis constant"
+    )
+    
     observeEvent(input$use_add, {
         updateTabsetPanel(session, "main_panel",
                           selected = ifelse(input$use_add == 1, "add compound", "parameters")
@@ -90,24 +91,30 @@ shiny::shinyServer(function(input, output, session) {
         
     })
     
-    
+    observeEvent(input$custom_params, {
+      if(!input$custom_params && exists("custom_param_values"))
+          rm(custom_param_values)
+    })
     observeEvent(input$cparams_submit, {
-        #add a row:
-        newdata <- data.frame("parameter"=input$cparams_select, 
-                              "description"=parameter_names[input$cparams_select], 
-                              "value"=input$cparams_value, 
-                              "MC 2.5%" = NA, 
-                              "MC mean" = NA, 
-                              "MC 97.5%" = NA)
-        if(exists("custom_param_values")) {
-            #remove the last existing value if it was in there
-            custom_param_values <<- custom_param_values[custom_param_values$parameter != input$cparams_select,]
-            custom_param_values <<- rbind(custom_param_values, 
-                                          newdata
-            )
-        } else {
-            custom_param_values <- newdata
-        }
+        
+            #add a row:
+            newdata <- data.frame("parameter"=input$cparams_select, 
+                                  "description"=parameter_names[input$cparams_select], 
+                                  "value"=input$cparams_value, 
+                                  "MC 2.5%" = NA, 
+                                  "MC mean" = NA, 
+                                  "MC 97.5%" = NA)
+            # browser
+            if(exists("custom_param_values")) {
+                #remove the last existing value if it was in there
+                custom_param_values <<- custom_param_values[custom_param_values$parameter != input$cparams_select,]
+                custom_param_values <<- rbind(custom_param_values, 
+                                              newdata
+                )
+            } else {
+                custom_param_values <<- newdata
+            }
+        
         #clean the inputs
         updateNumericInput(session, "cparams_value", value = 0)
     })
@@ -115,7 +122,8 @@ shiny::shinyServer(function(input, output, session) {
                                       # "MC 2.5%"=c(), "MC mean"=c(), "MC 97.5%"=c())
     output$custom_param_table <- renderTable({
         input$cparams_submit
-        custom_param_values
+        if(exists("custom_param_values"))
+            return(custom_param_values)
     })
     
     mc_cv <- reactive(c(`Total Body Water` = input$cv.water,
@@ -211,7 +219,7 @@ shiny::shinyServer(function(input, output, session) {
     
     results_mc <- eventReactive(input$run, {
         if(input$output_type == "mc") {
-            pbtk_mclist <- list("inits"=list(), "pbtk_result"=list(), "halflife"=list())
+            pbtk_mclist <- list("inits"=list(), "pbtk_result"=list(), "halflife"=list(), "AUC"=list(), "Cmax"=list())
             param_list <- list("chem.cas"=NULL,"chem.name" = input$compound, 
                                "species" = input$species, "default.to.human" = F,
                                "tissuelist" = list(liver=c("liver"), 
@@ -257,6 +265,8 @@ shiny::shinyServer(function(input, output, session) {
                             wmax <- which.max(x)
                             wmin <- which(x < (max(x)/2))
                             pbtk_mclist[["halflife"]][[i]] <- times[min(wmin[wmin > wmax])] - times[wmax]
+                            pbtk_mclist[["AUC"]][[i]] <- (times[2]-times[1])*x
+                            pbtk_mclist[["Cmax"]][[i]] <- wmax
                             
                          }, 
                          min = 0, max = 1)
@@ -310,19 +320,20 @@ shiny::shinyServer(function(input, output, session) {
     })
     
     output$results_plot_single <- renderPlot({
+        
         if(!is.null(input$choose_plot)) {
             if(input$output_type == "mc") {
                 res <- results_mc_df()
                 timevar <- res["mean",,"time"]
-                cd <- which(endpoints() == input$choose_plot)
+                cd <- which(dimnames(res)[[3]] == input$choose_plot)
+                # browser()
                 plot(res["mean",,cd] ~ timevar, type="l", xlab="time", ylab=dimnames(res)[3][[1]][cd])
                 polygon(c(timevar, rev(timevar)), c(res[2,,cd], rev(res[3,,cd])), col="gray", border=NA)
                 lines(res["mean",,cd] ~ timevar, type="l", lwd=1.2)
             }
             if(input$output_type == "single") {
-                # browser()
                 res <- results()
-                cd <- which(endpoints() == input$choose_plot)
+                cd <- which(colnames(res) == input$choose_plot)
                 plot(res[,cd] ~ res[,"time"], type="l", xlab="time", ylab=endpoints()[cd])
             }
         }
@@ -337,14 +348,20 @@ shiny::shinyServer(function(input, output, session) {
         
     })
     
-    output$results_halflife <- renderTable({
+    output$results_numerical <- renderTable({
         if(input$output_type == "mc") {
             lci <- (1-input$display_ci)/2
             uci <- 1 - (1-input$display_ci)/2
-            df <- apply(do.call(rbind, results_mc()[["halflife"]]), 2, function(x) {
+                
+            df <- apply(data.frame(unlist(results_mc()[["halflife"]]), 
+                                   unlist(results_mc()[["AUC"]]), 
+                                   unlist(results_mc()[["Cmax"]])), 
+                        2, function(x) {
                 c("lci"=quantile(x,lci, na.rm=T), "mean"=mean(x, na.rm=T), "uci"=quantile(x,uci, na.rm=T)) 
             })    
+                # browser()
             rownames(df) <- c(paste0(100*lci, "%"), "mean", paste0(100*uci, "%"))
+            colnames(df) <- c("Half-life (Cplasma)", "AUC (Cplasma)", "Cmax (Cplasma)")
             # browser()
             return(df)
         }
@@ -355,7 +372,9 @@ shiny::shinyServer(function(input, output, session) {
                 wmax <- which.max(x)
                 wmin <- which(x < (max(x)/2))
                 tt <- times[min(wmin[wmin > wmax])] - times[wmax]
-                return(data.frame("Cplasma" = tt))
+                return(data.frame("Cplasma half-life" = tt,
+                                  "Cplasma Cmax" = wmax,
+                                  "Cplasma AUC" = sum((times[2]-times[1])*x)))
             }
         }
     }, rownames = TRUE, digits = 3)
