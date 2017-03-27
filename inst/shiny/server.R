@@ -92,7 +92,8 @@ shiny::shinyServer(function(input, output, session) {
     
     observeEvent(input$custom_params, {
       if(!input$custom_params && exists("custom_param_values"))
-          rm(custom_param_values)
+          # browser()
+          rm(custom_param_values, envir=.GlobalEnv)
     })
     observeEvent(input$cparams_submit, {
         
@@ -138,10 +139,6 @@ shiny::shinyServer(function(input, output, session) {
                         GFR = input$cv.gfr,
                         `Average Body Temperature` = input$cv.abt
                         ))
-    
-    inits_mean <- parameterize_pbtk(chem.cas=NULL,chem.name = "Bisphenol-A", species = "Human", default.to.human = F,
-                                    tissuelist = list(liver=c("liver"), kidney=c("kidney"), lung=c("lung"), gut=c("gut")),
-                                    force.human.clint.fub = F, clint.pvalue.threshold = 0.05, monte.carlo=FALSE)
     parameters <- reactive({
         param_list <- list("chem.cas"=NULL,"chem.name" = input$compound, "species" = input$species, 
                            "default.to.human" = F,
@@ -153,10 +150,10 @@ shiny::shinyServer(function(input, output, session) {
             param_list$chem.name <- NULL
         }
         if(input$use_add && input$add_submit) {
-            chem.physical_and_invitro.data <- chem.physical_and_invitro.data_new
+            chem.physical_and_invitro.data <<- chem.physical_and_invitro.data_new
             param_list$chem.name <- paste(toupper(substr(input$add_compound, 1, 1)), 
                                           substr(input$add_compound, 2, nchar(input$add_compound)), sep="")
-        browser()
+        # browser()
         }
         inits <- do.call(parameterize_pbtk, param_list)
         

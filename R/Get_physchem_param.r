@@ -1,11 +1,9 @@
 # This function retrives physico-chemical properties ("param") for the chemical specified by chem.name or chem.CAS from the vLiver tables.
-get_physchem_param <- function(param,chem.name=NULL,chem.CAS=NULL, new.table=NULL)
+get_physchem_param <- function(param,chem.name=NULL,chem.CAS=NULL)
 {
   Wetmore.data <- Wetmore.data
   chem.physical_and_invitro.data <- chem.physical_and_invitro.data
-	if(exists("new.table"))
-		chem.physical_and_invitro.data <- new.table
-		
+
   if (is.null(chem.CAS) & is.null(chem.name))
   {
     stop("Must specifiy compound name or CAS.\n")

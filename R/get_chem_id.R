@@ -1,11 +1,8 @@
 get_chem_id <- function(chem.cas=NULL,
-                        chem.name=NULL,
-												new.table = NULL)
+                        chem.name=NULL)
 {
   chem.physical_and_invitro.data <- chem.physical_and_invitro.data
-	if(exists("new.table"))
-		chem.physical_and_invitro.data <- new.table
-		
+
   if (is.null(chem.cas) & is.null(chem.name))
   {
     stop("Must specifiy compound name or CAS.\n")

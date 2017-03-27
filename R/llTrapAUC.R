@@ -5,7 +5,7 @@ llTrapAUC <- function(time, values) {
     if(length(c1) != length(dt))
         stop("In AUC calculation length of times and values do not match.")
     
-    cat(dt)
+    # cat(dt)
     ww <- apply(data.frame(dt, c1, c2), 1, function(x) {
       if(x[3] >= x[2])
           return(x[1]*(x[3]+x[2])/2)

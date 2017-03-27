@@ -43,7 +43,7 @@ shiny::shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
         fluidRow(
-            column(5, checkboxInput("use_cas", "Use CAS instead of compound name")),
+            column(7, checkboxInput("use_cas", "Use CAS instead of compound name")),
             column(5, checkboxInput("use_add", "Add a new compound"))
         ),
       conditionalPanel("input.use_add == 0",
@@ -78,7 +78,7 @@ shiny::shinyUI(fluidPage(
     mainPanel(tabsetPanel(id="main_panel",
       tabPanel("parameters", 
         h3("PBTK model parameter values"),
-        checkboxInput("custom_params", "Check here to manually change parameter values", 0),
+        checkboxInput("custom_params", "Check here to manually change parameter values", 0, width=500),
         conditionalPanel("input.custom_params == 1",
                          em("To erase user-defined values, please restart the application"),
                          
