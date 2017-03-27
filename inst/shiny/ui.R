@@ -64,7 +64,7 @@ shiny::shinyUI(fluidPage(
         numericInput("solve.doses.per.day", "Doses per day", 0),
         numericInput("solve.dose", "Per dose/day (mg/kg BW)", 0)
       ),
-      checkboxInput("solve.iv.dose", "IV dose", 0),
+      checkboxInput("solve.iv.dose", "IV dose (default = oral)", 0),
       radioButtons("output_type", "Single simulation or Monte Carlo?", c("single"="single", "Monte Carlo"="mc"), inline=TRUE),
       selectInput("solve.output.units", "Output units", c("mg/L", "mg", "umol", "uM"), selected="uM"),
       fluidRow(
@@ -174,9 +174,22 @@ shiny::shinyUI(fluidPage(
             sliderInput("display_ci", "Uncertainty interval", min = 0, max = 1, value = 0.95, step = .05)),
         htmlOutput("choose_plot_ui"),
         plotOutput("results_plot_single"),
-        h3("Half-life, AUC, maximum calculations"),
-        tableOutput("results_numerical"),
-        plotOutput("results_plot")
+        fluidRow(
+            column(6, 
+                h3("Cmax, AUC, Half-life calculations"),
+                tableOutput("results_numerical")
+                # plotOutput("results_plot")
+            ),
+            column(6,
+                h3("Downloading model results"),
+                conditionalPanel("input.output_type == 'mc'", 
+                                 "Values for Monte Carlo provided as mean over all simulations"),
+                                 # selectInput("download_choice_mc", 
+                                             # "Choose dataset to download", 
+                                             # c("mean estimates with 95% intervals"))),
+                # actionButton("download", "Download dataset as .csv file")
+                downloadLink("fileDownload", "Download model solution (.csv file)")
+            ))
         
         # uiOutput("results_plot_ui")
       )

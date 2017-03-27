@@ -44,7 +44,6 @@ shiny::shinyServer(function(input, output, session) {
     })
     
     observeEvent(input$add_submit, {
-       
         if(input$use_add) {
             # browser()
         my.new.data <- data.frame(
@@ -154,10 +153,10 @@ shiny::shinyServer(function(input, output, session) {
             param_list$chem.name <- NULL
         }
         if(input$use_add && input$add_submit) {
-            chem.physical_and_invitro.data <<- chem.physical_and_invitro.data_new
+            chem.physical_and_invitro.data <- chem.physical_and_invitro.data_new
             param_list$chem.name <- paste(toupper(substr(input$add_compound, 1, 1)), 
                                           substr(input$add_compound, 2, nchar(input$add_compound)), sep="")
-        # browser()
+        browser()
         }
         inits <- do.call(parameterize_pbtk, param_list)
         
@@ -176,7 +175,7 @@ shiny::shinyServer(function(input, output, session) {
     output$parameters_df <- renderTable({
         # 
         ww <- parameters()
-        parameter_df <- data.frame("parameter"=names(ww), "description" = parameter_names, "value"=unlist(ww))
+        parameter_df <- data.frame("parameter"=names(ww), "description" = parameter_names[names(ww)], "value"=unlist(ww))
         
         # if(input$output_type == "single")
         if(input$output_type == "mc") {
@@ -265,8 +264,8 @@ shiny::shinyServer(function(input, output, session) {
                             wmax <- which.max(x)
                             wmin <- which(x < (max(x)/2))
                             pbtk_mclist[["halflife"]][[i]] <- times[min(wmin[wmin > wmax])] - times[wmax]
-                            pbtk_mclist[["AUC"]][[i]] <- (times[2]-times[1])*x
-                            pbtk_mclist[["Cmax"]][[i]] <- wmax
+                            pbtk_mclist[["AUC"]][[i]] <- llTrapAUC(times, x)
+                            pbtk_mclist[["Cmax"]][[i]] <- max(x)
                             
                          }, 
                          min = 0, max = 1)
@@ -301,7 +300,7 @@ shiny::shinyServer(function(input, output, session) {
             par(mfrow=c(ceiling(dim(res)[3]/3),3))
             for(cd in 1:dim(res)[3]) {
                 plot(res["mean",,cd] ~ timevar, type="l", 
-                     xlab="time", ylab=dimnames(res)[3][[1]][cd])
+                     xlab="time (days)", ylab=dimnames(res)[3][[1]][cd])
                 polygon(c(timevar, rev(timevar)), 
                         c(res[2,,cd], rev(res[3,,cd])), 
                         col="gray", border=NA)
@@ -327,14 +326,14 @@ shiny::shinyServer(function(input, output, session) {
                 timevar <- res["mean",,"time"]
                 cd <- which(dimnames(res)[[3]] == input$choose_plot)
                 # browser()
-                plot(res["mean",,cd] ~ timevar, type="l", xlab="time", ylab=dimnames(res)[3][[1]][cd])
+                plot(res["mean",,cd] ~ timevar, type="l", xlab="time (days)", ylab=dimnames(res)[3][[1]][cd])
                 polygon(c(timevar, rev(timevar)), c(res[2,,cd], rev(res[3,,cd])), col="gray", border=NA)
                 lines(res["mean",,cd] ~ timevar, type="l", lwd=1.2)
             }
             if(input$output_type == "single") {
                 res <- results()
                 cd <- which(colnames(res) == input$choose_plot)
-                plot(res[,cd] ~ res[,"time"], type="l", xlab="time", ylab=endpoints()[cd])
+                plot(res[,cd] ~ res[,"time"], type="l", xlab="time (days)", ylab=endpoints()[cd])
             }
         }
     })
@@ -373,9 +372,26 @@ shiny::shinyServer(function(input, output, session) {
                 wmin <- which(x < (max(x)/2))
                 tt <- times[min(wmin[wmin > wmax])] - times[wmax]
                 return(data.frame("Cplasma half-life" = tt,
-                                  "Cplasma Cmax" = wmax,
-                                  "Cplasma AUC" = sum((times[2]-times[1])*x)))
+                                  "Cplasma Cmax" = max(x),
+                                  "Cplasma AUC" = llTrapAUC(times, x)))
             }
         }
     }, rownames = TRUE, digits = 3)
+    
+    output$fileDownload <- downloadHandler(
+        filename = function() {
+            paste("data-", Sys.Date(), ".csv", sep="")
+        },
+        content = function(file) {
+            # data <- ifelse(input$output_type == "single", results(), results_mc()[["pbtk_result"]][[1]])
+            if(input$output_type == "single")
+                data <- results()
+            if(input$output_type == "mc")
+                data <- results_mc_df()["mean",,]
+            # browser()
+            write.csv(data, 
+                      file)
+        },
+        contentType='text/csv'
+    )
 })

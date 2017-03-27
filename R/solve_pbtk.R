@@ -160,7 +160,6 @@ solve_pbtk <- function(chem.name = NULL,
 
   
   state <-initState(parameters,state)
-    
   if(is.null(dosing.matrix)){
     if(is.null(doses.per.day)){
       out <- ode(y = state, times = times,func="derivs", parms=parameters, method=method,rtol=rtol,atol=atol,dllname="httk",initfunc="initmod", nout=length(Outputs),outnames=Outputs,...)

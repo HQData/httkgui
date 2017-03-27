@@ -1,7 +1,10 @@
 # This function displays the information specified in "info=" for all chemicals for which the PBPK model can be paramterized.
-get_cheminfo <- function(info="CAS",species="Human",exclude.fub.zero=NA,fub.lod.default=0.005,model='3compartmentss',default.to.human=F)
+get_cheminfo <- function(info="CAS",species="Human",exclude.fub.zero=NA,fub.lod.default=0.005,model='3compartmentss',default.to.human=F, new.table=NULL)
 { 
   chem.physical_and_invitro.data <- chem.physical_and_invitro.data
+	if(exists("new.table"))
+		chem.physical_and_invitro.data <- new.table
+		
   if(tolower(species) == 'human') species <- 'Human' 
   else if(tolower(species) == 'rat') species <- 'Rat'
   else if(tolower(species) == 'dog') species <- 'Dog'
