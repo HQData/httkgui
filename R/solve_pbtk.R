@@ -136,19 +136,26 @@ solve_pbtk <- function(chem.name = NULL,
     }
   }    
   
-  if(recalc.blood2plasma) parameters[['Rblood2plasma']] <- 1 - parameters[['hematocrit']] + parameters[['hematocrit']] * parameters[['Krbc2pu']] * parameters[['Funbound.plasma']]
+  if(recalc.blood2plasma) parameters[['Rblood2plasma']] <- 
+      1 - parameters[['hematocrit']] + parameters[['hematocrit']] * parameters[['Krbc2pu']] * parameters[['Funbound.plasma']]
   
   if(recalc.clearance){
-    if(is.null(chem.name) & is.null(chem.cas)) stop('Chemical name or CAS must be specified to recalculate hepatic clearance.')
+    if(is.null(chem.name) & is.null(chem.cas)) 
+        stop('Chemical name or CAS must be specified to recalculate hepatic clearance.')
     ss.params <- parameterize_steadystate(chem.name=chem.name,chem.cas=chem.cas)
     ss.params[['million.cells.per.gliver']] <- parameters[['million.cells.per.gliver']]
-    parameters[['Clmetabolismc']] <- calc_hepatic_clearance(parameters=ss.params,hepatic.model='unscaled',suppress.messages=T)
-  } 
+    parameters[['Clmetabolismc']] <- 
+        calc_hepatic_clearance(parameters=ss.params,
+                               hepatic.model='unscaled',
+                               suppress.messages=T)
+  }
+  
 
   parameters[['CLmetabolismc']] <- parameters[['Clmetabolismc']] 
   parameters[['Fraction_unbound_plasma']] <- parameters[['Funbound.plasma']]
   parameters[['Ratioblood2plasma']] <- parameters[['Rblood2plasma']]
-  names(parameters)[substr(names(parameters),1,1) == 'K'] <- gsub('2pu','2plasma',names(parameters)[substr(names(parameters),1,1) == 'K'])
+  names(parameters)[substr(names(parameters),1,1) == 'K'] <- 
+      gsub('2pu','2plasma',names(parameters)[substr(names(parameters),1,1) == 'K'])
   
   parameters <- initparms(parameters[!(names(parameters) %in% c('Rblood2plasma',
                                                                 "Fhep.assay.correction",
@@ -160,16 +167,28 @@ solve_pbtk <- function(chem.name = NULL,
 
   
   state <-initState(parameters,state)
+  browser()
   if(is.null(dosing.matrix)){
     if(is.null(doses.per.day)){
-      out <- ode(y = state, times = times,func="derivs", parms=parameters, method=method,rtol=rtol,atol=atol,dllname="httk",initfunc="initmod", nout=length(Outputs),outnames=Outputs,...)
+      out <- ode(y = state, 
+                 times = times,
+                 func="derivs", 
+                 parms=parameters, 
+                 method=method,rtol=rtol,atol=atol,dllname="httk",initfunc="initmod", 
+                 nout=length(Outputs),outnames=Outputs,...)
   } else{
       length <- length(seq(start + 1/doses.per.day,end-1/doses.per.day,1/doses.per.day))
-      eventdata <- data.frame(var=rep('Agutlumen',length),time = round(seq(start + 1/doses.per.day,end-1/doses.per.day,1/doses.per.day),8),value = rep(dose,length), method = rep("add",length))
-      out <- ode(y = state, times = times, func="derivs", parms = parameters,method=method,rtol=rtol,atol=atol, dllname="httk",initfunc="initmod", nout=length(Outputs),outnames=Outputs,events=list(data=eventdata),...)
+      eventdata <- data.frame(var=rep('Agutlumen',length),
+                              time = round(seq(start + 1/doses.per.day,end-1/doses.per.day,1/doses.per.day),8),
+                              value = rep(dose,length), method = rep("add",length))
+      out <- ode(y = state, times = times, func="derivs", parms = parameters,
+                 method=method,rtol=rtol,atol=atol, dllname="httk",initfunc="initmod", 
+                 nout=length(Outputs),outnames=Outputs,events=list(data=eventdata),...)
     }
   } else{
-    eventdata <- data.frame(var=rep('Agutlumen',length(dosing.times)),time = dosing.times,value = dose.vector, method = rep("add",length(dosing.times)))                          
+    eventdata <- data.frame(var=rep('Agutlumen',length(dosing.times)),
+                            time = dosing.times,value = dose.vector, 
+                            method = rep("add",length(dosing.times)))                          
     out <- ode(y = state, 
                times = times, 
                func = "derivs", 
@@ -198,11 +217,11 @@ solve_pbtk <- function(chem.name = NULL,
     }
     
   }
-    if(use.amounts){
-      out <- out[,c("time",CompartmentsToInitialize,"Ametabolized","Atubules","Aplasma","AUC")]
-    }else{
-      out <- out[,c("time",CompartmentsToInitialize,"Ametabolized","Atubules","Cplasma","AUC")]
-    }
+  if(use.amounts){
+    out <- out[,c("time",CompartmentsToInitialize,"Ametabolized","Atubules","Aplasma","AUC")]
+  }else{
+    out <- out[,c("time",CompartmentsToInitialize,"Ametabolized","Atubules","Cplasma","AUC")]
+  }
   class(out) <- c('matrix','deSolve')
   
   if(!suppress.messages){

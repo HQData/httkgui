@@ -1,38 +1,44 @@
 
 # compartment_names <- c("lung", "kidney", "gut", "liver")
 parameter_names <- c(
-    "BW" = "Body Weight, kg.",
-    "Clmetabolismc" = "Hepatic Clearance, L/h/kg BW.",
-    "Fgutabs" = "Fraction of the oral dose absorbed, i.e. the fraction of the dose that enters the gutlumen.",
-    "Funbound.plasma" = "Fraction of plasma that is not bound.",
-    "Fhep.assay.correction" = "The fraction of chemical unbound in hepatocyte assay using the method of Kilford et al. (2008)",
-    "hematocrit" = "Percent volume of red blood cells in the blood.",
-    "kdermabs" = "Rate that chemical is transferred from the skin to the blood, 1/h.",
-    "Kgut2pu" = "Ratio of concentration of chemical in gut tissue to unbound concentration in plasma.",
-    "kgutabs" = "Rate that chemical enters the gut from gutlumen, 1/h.",
-    "kinhabs" = "Rate that the chemical is transferred from the lungs to the blood, 1/h.",
-    "Kkidney2pu" = "Ratio of concentration of chemical in kidney tissue to unbound concentration in plasma.",
-    "Kliver2pu" = "Ratio of concentration of chemical in liver tissue to unbound concentration in plasma.",
-    "Klung2pu" = "Ratio of concentration of chemical in lung tissue to unbound concentration in plasma.",
-    "Krbc2pu" = "Ratio of concentration of chemical in red blood cells to unbound concentration in plasma.",
-    "Krest2pu" = "Ratio of concentration of chemical in rest of body tissue to unbound concentration in plasma.",
-    "million.cells.per.gliver" = "Millions cells per gram of liver tissue.",
-    "MW" = "Molecular Weight, g/mol.",
-    "Qcardiacc" = "Cardiac Output, L/h/kg BW^3/4.",
-    "Qgfrc" = "Glomerular Filtration Rate, L/h/kg BW^3/4, volume of fluid filtered from kidney and excreted.",
-    "Qgutf" = "Fraction of cardiac output flowing to the gut.",
-    "Qkidneyf" = "Fraction of cardiac output flowing to the kidneys.",
-    "Qliverf" = "Fraction of cardiac output flowing to the liver.",
-    "Rblood2plasma" = "The ratio of the concentration of the chemical in the blood to the concentration in the plasma.",
-    "Vartc" = "Volume of the arteries per kg body weight, L/kg BW.",
-    "Vgutc" = "Volume of the gut per kg body weight, L/kg BW.",
-    "Vkidneyc" = "Volume of the kidneys per kg body weight, L/kg BW.",
-    "Vliverc" = "Volume of the liver per kg body weight, L/kg BW.",
-    "Vlungc" = "Volume of the lungs per kg body weight, L/kg BW.",
-    "Vrestc" = "Volume of the rest of the body per kg body weight, L/kg BW.",
-    "Vvenc" = "Volume of the veins per kg body weight, L/kg BW.",
-    "Vmax" = "Maximal velocity, []",
-    "km" = "Michaelis constant"
+  "BW" = "Body Weight, kg.",
+  "Clmetabolismc" = "Hepatic Clearance, L/h/kg BW.",
+  "Fgutabs" = "Fraction of the oral dose absorbed, i.e. the fraction of the dose that enters the gutlumen.",
+  "Funbound.plasma" = "Fraction of plasma that is not bound.",
+  "Fhep.assay.correction" = "The fraction of chemical unbound in hepatocyte assay using the method of Kilford et al. (2008)",
+  "hematocrit" = "Percent volume of red blood cells in the blood.",
+  "kdermabs" = "Rate that chemical is transferred from the skin to the blood, 1/h.",
+  "Kgut2pu" = "Ratio of concentration of chemical in gut tissue to unbound concentration in plasma.",
+  "kgutabs" = "Rate that chemical enters the gut from gutlumen, 1/h.",
+  "kinhabs" = "Rate that the chemical is transferred from the lungs to the blood, 1/h.",
+  "Kkidney2pu" = "Ratio of concentration of chemical in kidney tissue to unbound concentration in plasma.",
+  "Kliver2pu" = "Ratio of concentration of chemical in liver tissue to unbound concentration in plasma.",
+  "Klung2pu" = "Ratio of concentration of chemical in lung tissue to unbound concentration in plasma.",
+  "Krbc2pu" = "Ratio of concentration of chemical in red blood cells to unbound concentration in plasma.",
+  "Krest2pu" = "Ratio of concentration of chemical in rest of body tissue to unbound concentration in plasma.",
+  "million.cells.per.gliver" = "Millions cells per gram of liver tissue.",
+  "MW" = "Molecular Weight, g/mol.",
+  "Qcardiacc" = "Cardiac Output, L/h/kg BW^3/4.",
+  "Qgfrc" = "Glomerular Filtration Rate, L/h/kg BW^3/4, volume of fluid filtered from kidney and excreted.",
+  "Qgutf" = "Fraction of cardiac output flowing to the gut.",
+  "Qkidneyf" = "Fraction of cardiac output flowing to the kidneys.",
+  "Qliverf" = "Fraction of cardiac output flowing to the liver.",
+  "Rblood2plasma" = "The ratio of the concentration of the chemical in the blood to the concentration in the plasma.",
+  "Vartc" = "Volume of the arteries per kg body weight, L/kg BW.",
+  "Vgutc" = "Volume of the gut per kg body weight, L/kg BW.",
+  "Vkidneyc" = "Volume of the kidneys per kg body weight, L/kg BW.",
+  "Vliverc" = "Volume of the liver per kg body weight, L/kg BW.",
+  "Vlungc" = "Volume of the lungs per kg body weight, L/kg BW.",
+  "Vrestc" = "Volume of the rest of the body per kg body weight, L/kg BW.",
+  "Vvenc" = "Volume of the veins per kg body weight, L/kg BW.",
+  "Vmax" = "Maximal velocity, []",
+  "km" = "Michaelis constant"
+)
+
+additional_parameters <- c(
+  "KTS" = "KTS",
+  "FR" = "FR",
+  "Clint" = "Clint"
 )
 
 shiny::shinyUI(fluidPage(
@@ -80,15 +86,24 @@ shiny::shinyUI(fluidPage(
         h3("PBTK model parameter values"),
         checkboxInput("custom_params", "Check here to manually change parameter values", 0, width=500),
         conditionalPanel("input.custom_params == 1",
-                         em("To erase user-defined values, please restart the application"),
-                         
+                         HTML("<em>To erase user-defined values, please restart the application. </em><br>
+                              Please note that KTS, FR, Clint parameters are not included in parameterization inputs, 
+                              but used to derive other values (renal clearance, hepatic clearance).<br>"),
+                         conditionalPanel("input.output_type == 'mc'",
+                                          HTML("<b>Note: when setting CV manually, 
+                                               this setting will override variability coming from 
+                                               physiological parameter variability in another tab.</b><br>")),
                          fluidRow(
-                             column(4, selectInput("cparams_select", "Parameter name", names(parameter_names))),
+                             column(4, selectInput("cparams_select", 
+                                                   "Parameter name", 
+                                                   c(names(parameter_names), names(additional_parameters))
+                                                   )
+                                    ),
                              column(2, numericInput("cparams_value", "Mean value", 0)),
                              
                              conditionalPanel("input.output_type == 'mc'",
-                                              column(2, numericInput("cparams_lci", "2.5% value", 0)),
-                                              column(2, numericInput("cparams_uci", "97.5% value", 0))
+                                              column(2, sliderInput("cparams_cv", "Monte Carlo CV", min=0, max=1, 0))
+                                              # column(2, numericInput("cparams_uci", "97.5% value", 0))
                              )
                          ),
                          actionButton("cparams_submit", "Submit values"),
@@ -148,6 +163,7 @@ shiny::shinyUI(fluidPage(
                        numericInput("nSimulations", "Number of draws", 50),
                        checkboxInput("mc_use_log", "Use log-normal distributions", 1),
                        h3("Coefficient of variation values"),
+                       fluidRow(
                        column(4,
                         sliderInput("cv.water",		'Total Body Water' 			, 0, 1, .3), 
                         sliderInput("cv.plasma",	    'Plasma Volume' 			, 0, 1, .3),
@@ -164,6 +180,9 @@ shiny::shinyUI(fluidPage(
                        sliderInput("cv.gfr",		'GFR' 						, 0, 1, .3),
                        sliderInput("cv.abt",		'Average Body Temperature' 	, 0, 1, 0)
                        )
+                       ),
+                       h3("Additional variability on CLh parameter"),
+                       sliderInput("cv.clh", "CLh (log-normal CV)", 0, 1, 0)
           ),
           conditionalPanel("input.output_type == 'single'",
                            "Please select Monte Carlo mode on the left to define parameter variability.")

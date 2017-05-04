@@ -16,7 +16,8 @@ parameterize_pbtk <- function(chem.cas = NULL,
                               monte.carlo = FALSE,
                               monte.carlo.log = TRUE, #whether to do draws from log-normal
                               monte.carlo.cv = NULL, 
-                              clh.cv = NULL) {
+                              clh.cv = NULL,
+                              override.inputs = NULL) {
     
   physiology.data <- physiology.data
   
@@ -68,7 +69,13 @@ parameterize_pbtk <- function(chem.cas = NULL,
           Clint.pValue <- get_invitroPK_param("Clint.pValue",species,chem.CAS=chem.cas)
           if (!is.na(Clint.pValue) & Clint.pValue > clint.pvalue.threshold) Clint <- 0
       }
+      
   }
+  #LASER ADDITION: overriding defaults
+  if(!is.null(override.inputs))
+    if("Clint" %in% names(override.inputs))
+      Clint <- override.inputs[["Clint"]]
+    
 
   
       
@@ -129,6 +136,14 @@ parameterize_pbtk <- function(chem.cas = NULL,
   # LASER update: consider renal clearance flow instead
   FR <- try(get_invitroPK_param("FR", species, chem.CAS=chem.cas), silent=TRUE)
   KTS <- try(get_invitroPK_param("KTS", species, chem.CAS=chem.cas), silent=TRUE)
+  #case of 'manually providing values, rather than get_invitro param
+  if(!is.null(override.inputs)) {
+    if("FR" %in% names(override.inputs))
+      FR <- override.inputs[["FR"]]
+    if("KTS" %in% names(override.inputs))
+      KTS <- override.inputs[["KTS"]]
+  }
+  
   if((class(FR) != "try-error") && (class(KTS) != "try-error"))
       QGFRc <- fub*QGFRc + (flows[["Qkidneyf"]] - fub*QGFRc)*(1-exp(- (fub*QGFRc * KTS/(flows[["Qkidneyf"]]-QGFRc)) ))*(1 - FR)
     
@@ -181,7 +196,7 @@ parameterize_pbtk <- function(chem.cas = NULL,
                                               suppress.messages=T))
  
  if(!is.null(clh.cv)) {
-     clh.sd <- sqrt(log(cv.clh^2 + 1))
+     clh.sd <- sqrt(log(clh.cv^2 + 1))
      clh.mean <- log(CLh_value) - (clh.sd^2)/2 #of course, this is mean on the log scale... not E(X) (which we want == CLh_value)
      CLh_value <- rlnorm(1, clh.mean, clh.sd)
  }
