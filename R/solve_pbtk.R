@@ -167,7 +167,6 @@ solve_pbtk <- function(chem.name = NULL,
 
   
   state <-initState(parameters,state)
-  browser()
   if(is.null(dosing.matrix)){
     if(is.null(doses.per.day)){
       out <- ode(y = state, 

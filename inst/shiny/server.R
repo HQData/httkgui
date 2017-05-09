@@ -379,7 +379,7 @@ shiny::shinyServer(function(input, output, session) {
   })
   
   output$results_plot_single <- renderPlot({
-      
+      # browser()
       if(!is.null(input$choose_plot)) {
           if(input$output_type == "mc") {
               res <- results_mc_df()
