@@ -1,78 +1,11 @@
-/* vLiverPBPK.c for R deSolve package 
-___________________________________________________
-   Model File:  vLiverPBPK.model
-   Date:  Mon Jan 26 15:57:27 2015
-   Created by:  "L:/Lab/NCCT_E~1/MCSim/mod/mod.exe v5.5.0"
-    -- a model preprocessor by Don Maszle
- ___________________________________________________
-   Copyright (c) 1993-2013 Free Software Foundation, Inc.
-   Model calculations for compartmental model:
-   11 States (A stands for quantities):
-     Agutlumen = 0.0,
-     Agut = 0.0,
-     Aliver = 0.0,
-     Aven = 0.0,
-     Alung = 0.0,
-     Aart = 0.0,
-     Arest = 0.0,
-     Akidney = 0.0,
-     Atubules = 0.0,
-     Ametabolized = 0.0,
-     AUC = 0.0,
-
-   9 Outputs:
-    "Cgut",
-    "Cliver",
-    "Cven",
-    "Clung",
-    "Cart",
-    "Crest",
-    "Ckidney",
-    "Cserum",
-    "Aserum",
-
-   0 Inputs:
-
-   39 Parameters :
-     BW = 70,
-     CLmetabolismc = 0.203,
-		 Vmax = 2.5,
-		 Km = 12.32,     
-     hematocrit = 0.44,
-     kgutabs = 1,
-     Kkidney2plasma = 0,
-     Kliver2plasma = 0,
-     Krest2plasma = 0,
-     Kgut2plasma = 0,
-     Klung2plasma = 0,
-     Qcardiacc = 4.8,
-     Qgfrc = 0.108,
-     Qgutf = 0.205,
-     Qkidneyf = 0.221,
-     Qliverf = 0.0536,
-     Vartc = 0.0487,
-     Vgutc = 0.0158,
-     Vkidneyc = 0.00119,
-     Vliverc = 0.02448,
-     Vlungc = 0.00723,
-     Vrestc = 0.77654,
-     Vvenc = 0.0487,
-     Fraction_unbound_plasma = 0.0682,
-     Ratioblood2plasma = 0.0,
-     CLmetabolism = 0.0,
-     Qcardiac = 0.0,
-     Qgfr = 0.0,
-     Qgut = 0.0,
-     Qkidney = 0.0,
-     Qliver = 0.0,
-     Qrest = 0.0,
-     Vart = 0.0,
-     Vgut = 0.0,
-     Vkidney = 0.0,
-     Vliver = 0.0,
-     Vlung = 0.0,
-     Vrest = 0.0,
-     Vven = 0.0,
+/* 
+ This is modification of vLiverPBPK .c program with addition of new metabolism parameters
+ 
+ New parameters are compartment-specific CL parameter, Vmax, km.
+ * If Vmax & km are available (by passing km != 0) we use them for calculation
+ * Otherwise CL parameter used
+ 
+ Author of the modification: WW / LASER
 */
 
 #include <R.h>
@@ -102,7 +35,7 @@ ___________________________________________________
 #define ID_Aserum 0x0008
 
 /* Parameters  */
-static double parms[39];
+static double parms[45];
 
 #define BW parms[0]
 #define CLmetabolismc parms[1]
@@ -141,18 +74,26 @@ static double parms[39];
 #define Vlung parms[34]
 #define Vrest parms[35]
 #define Vven parms[36]
-//two new additions (LASER):
-#define Vmax parms[37]
-#define Km parms[38]
-double aliver_lastterm;
+
+//new additions (LASER):
+#define Vmax_liver parms[37]
+#define Km_liver parms[38]
+#define Vmax_gut parms[39]
+#define Km_gut parms[40]
+#define Vmax_kidney parms[41]
+#define Km_kidney parms[42]
+#define CLmetabolism_gut parms[43]
+#define CLmetabolism_kidney parms[44]
+
+double lastterm; //for calculating this 'last term to subtract' 
 
 /*----- Initializers */ 
-void initmod (void (* odeparms)(int *, double *))
+void initmod_laser (void (* odeparms)(int *, double *))
 {
-  int N=39;
+  int N=45;
   odeparms(&N, parms);
 }
-void getParms (double *inParms, double *out, int *nout) {
+void getParms_laser (double *inParms, double *out, int *nout) {
 /*----- Model scaling */
   int i;
   for (i = 0; i < *nout; i++) {
@@ -180,7 +121,7 @@ void getParms (double *inParms, double *out, int *nout) {
   }
 /*----- Dynamics section */
 
-void derivs (int *neq, double *pdTime, double *y, double *ydot, double *yout, int *ip)
+void derivs_laser (int *neq, double *pdTime, double *y, double *ydot, double *yout, int *ip)
 {
   yout[ID_Cgut] = y[ID_Agut] / Vgut ;
 
@@ -203,17 +144,24 @@ void derivs (int *neq, double *pdTime, double *y, double *ydot, double *yout, in
 
   ydot[ID_Agutlumen] = - kgutabs * y[ID_Agutlumen] ;
 
-  ydot[ID_Agut] = kgutabs * y[ID_Agutlumen] + Qgut * ( y[ID_Aart] / Vart - y[ID_Agut] / Vgut * Ratioblood2plasma / Kgut2plasma / Fraction_unbound_plasma ) ;
-  
-  
-  if(Km==0) {
-      aliver_lastterm = CLmetabolism * y[ID_Aliver] / Vliver / Kliver2plasma ;
+  /* Agut flow: modified by subtracting term (lastterm) proportional to gut-specific metabolism */
+  if(Km_gut==0) {
+      lastterm = CLmetabolism_gut * y[ID_Agut] / Vgut / Kgut2plasma ;
   } else {
-      aliver_lastterm = (Vmax * y[ID_Aliver] / Vliver / Kliver2plasma) / (Km + y[ID_Aliver] / Vliver / Kliver2plasma);
+      lastterm = (Vmax_gut * y[ID_Agut] / Vgut / Kgut2plasma) / (Km_gut + y[ID_Agut] / Vgut / Kgut2plasma);
   }
+  ydot[ID_Agut] = kgutabs * y[ID_Agutlumen] + Qgut * ( y[ID_Aart] / Vart - y[ID_Agut] / Vgut * Ratioblood2plasma / Kgut2plasma / Fraction_unbound_plasma ) - lastterm;
+  /* End Aliver flow. */
   
-  ydot[ID_Aliver] = Qliver * y[ID_Aart] / Vart + Qgut * y[ID_Agut] / Vgut * Ratioblood2plasma / Kgut2plasma / Fraction_unbound_plasma - ( Qliver + Qgut ) * y[ID_Aliver] / Vliver / Kliver2plasma / Fraction_unbound_plasma * Ratioblood2plasma - aliver_lastterm;
-      
+  
+  /* Aliver flow: modified by subtracting term (lastterm) proportional to liver-specific metabolism */
+  if(Km_liver==0) {
+      lastterm = CLmetabolism * y[ID_Aliver] / Vliver / Kliver2plasma ;
+  } else {
+      lastterm = (Vmax_liver * y[ID_Aliver] / Vliver / Kliver2plasma) / (Km_liver + y[ID_Aliver] / Vliver / Kliver2plasma);
+  }
+  ydot[ID_Aliver] = Qliver * y[ID_Aart] / Vart + Qgut * y[ID_Agut] / Vgut * Ratioblood2plasma / Kgut2plasma / Fraction_unbound_plasma - ( Qliver + Qgut ) * y[ID_Aliver] / Vliver / Kliver2plasma / Fraction_unbound_plasma * Ratioblood2plasma - lastterm;
+  /* End Aliver flow. */
   
   ydot[ID_Aven] = ( ( Qliver + Qgut ) * y[ID_Aliver] / Vliver / Kliver2plasma + Qkidney * y[ID_Akidney] / Vkidney / Kkidney2plasma + Qrest * y[ID_Arest] / Vrest / Krest2plasma ) * Ratioblood2plasma / Fraction_unbound_plasma - Qcardiac * y[ID_Aven] / Vven ;
 
@@ -223,34 +171,33 @@ void derivs (int *neq, double *pdTime, double *y, double *ydot, double *yout, in
 
   ydot[ID_Arest] = Qrest * ( y[ID_Aart] / Vart - y[ID_Arest] / Vrest * Ratioblood2plasma / Krest2plasma / Fraction_unbound_plasma ) ;
 
-  ydot[ID_Akidney] = Qkidney * y[ID_Aart] / Vart - Qkidney * y[ID_Akidney] / Vkidney / Kkidney2plasma * Ratioblood2plasma / Fraction_unbound_plasma - Qgfr * y[ID_Akidney] / Vkidney / Kkidney2plasma ;
+  /* Aliver flow: modified by subtracting term (lastterm) proportional to liver-specific metabolism */
+  if(Km_kidney==0) {
+    lastterm = - CLmetabolism_kidney * y[ID_Akidney] / Vkidney / Kkidney2plasma;
+    ydot[ID_Akidney] = Qkidney * y[ID_Aart] / Vart - Qkidney * y[ID_Akidney] / Vkidney / Kkidney2plasma * Ratioblood2plasma / Fraction_unbound_plasma - Qgfr * y[ID_Akidney] / Vkidney / Kkidney2plasma - lastterm;
+  } else {
+    //here not just subtracting an extra term but instead of 'Qgfr term' in the above (and sans extra subtraction):
+    ydot[ID_Akidney] = Qkidney * y[ID_Aart] / Vart - Qkidney * y[ID_Akidney] / Vkidney / Kkidney2plasma * Ratioblood2plasma / Fraction_unbound_plasma - ((Vmax_kidney * y[ID_Akidney])/(Km_kidney + y[ID_Akidney]));
+  }
+  /* End Aliver flow. */
+  
 
   ydot[ID_Atubules] = Qgfr * y[ID_Akidney] / Vkidney / Kkidney2plasma ;
-
-  ydot[ID_Ametabolized] = CLmetabolism * y[ID_Aliver] / Vliver / Kliver2plasma ;
-
+  
+  /* Modification: CL partitioned into three terms */
+  if(Km_kidney!=0 && Km_gut != 0 && Km_liver != 0) {
+    ydot[ID_Ametabolized] = 
+      (Vmax_liver * y[ID_Aliver] / (Km_liver + y[ID_Aliver])) + 
+      (Vmax_kidney * y[ID_Akidney] / (Km_kidney + y[ID_Akidney])) + 
+      (Vmax_gut * y[ID_Agut] / (Km_gut + y[ID_Agut])); 
+      
+  } else {
+    ydot[ID_Ametabolized] = 
+      (CLmetabolism * y[ID_Aliver] / Vliver / Kliver2plasma) + 
+      (CLmetabolism_kidney * y[ID_Akidney] / Vkidney / Kkidney2plasma) + 
+      (CLmetabolism_gut * y[ID_Agut] / Vgut / Kgut2plasma);
+  }
   ydot[ID_AUC] = y[ID_Aven] / Vven / Ratioblood2plasma ; 
   //(not very helpful here or used to calculate later?)
 
 } /* derivs */
-
-
-/*----- Jacobian calculations: */
-void jac (int *neq, double *t, double *y, int *ml, int *mu, double *pd, int *nrowpd, double *yout, int *ip)
-{
-
-} /* jac */
-
-
-/*----- Events calculations: */
-void event (int *n, double *t, double *y)
-{
-
-} /* event */
-
-/*----- Roots calculations: */
-void root (int *neq, double *t, double *y, int *ng, double *gout, double *out, int *ip)
-{
-
-} /* root */
-
