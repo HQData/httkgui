@@ -47,8 +47,11 @@ parameterize_pbtk <- function(chem.cas = NULL,
   
   # Clint
   # Clint has units of uL/min/10^6 cells
-  if(!is.null(clint.enzyme.data)) {
+  Clint_kidney <- 0; Clint_gut <- 0; #if they're not provided after this line, they will simply be set to 0, and not influence results at all
+  if(!is.null(clint.enzyme.data)) { #this is now the default option for providing Clint_kidney and Clint_gut
       Clint <- clint.enzyme.data[["Vmax"]]*clint.enzyme.data[["km"]]*clint.enzyme.data[["ISEF"]]
+      Clint_kidney <- clint.enzyme.data[["Vmax_kidney"]]*clint.enzyme.data[["km_kidney"]]*clint.enzyme.data[["ISEF_kidney"]]
+      Clint_gut <- clint.enzyme.data[["Vmax_gut"]]*clint.enzyme.data[["km_gut"]]*clint.enzyme.data[["ISEF_gut"]]
   } else {
       #try to grab Vmax and km - if they're available, use them instead of Clint
       Vmax <- try(get_invitroPK_param("Vmax", species, chem.CAS=chem.cas), silent=TRUE)
@@ -69,7 +72,6 @@ parameterize_pbtk <- function(chem.cas = NULL,
           Clint.pValue <- get_invitroPK_param("Clint.pValue",species,chem.CAS=chem.cas)
           if (!is.na(Clint.pValue) & Clint.pValue > clint.pvalue.threshold) Clint <- 0
       }
-      
   }
   #LASER ADDITION: overriding defaults
   if(!is.null(override.inputs))
@@ -182,36 +184,55 @@ parameterize_pbtk <- function(chem.cas = NULL,
   # Correct for unbound fraction of chemical in the hepatocyte intrinsic clearance assay (Kilford et al., 2008)
  outlist <- c(outlist,list(Fhep.assay.correction=calc_fu_hep(Pow,pKa_Donor=pKa_Donor,pKa_Accept=pKa_Accept)))  # fraction 
 
- #introduce variability to CLh
- CLh_value <- as.numeric(calc_hepatic_clearance(hepatic.model="unscaled",
-                                              parameters=list(
-                                                  Clint=Clint, #uL/min/10^6 cells
-                                                  Funbound.plasma=fub, # unitless fraction
-                                                  Fhep.assay.correction=outlist$Fhep.assay.correction, 
-                                                  million.cells.per.gliver= 110, # 10^6 cells/g-liver
-                                                  liver.density= 1.05, # g/mL
-                                                  Dn=0.17,BW=BW,
-                                                  Vliverc=lumped_params$Vliverc, #L/kg
-                                                  Qtotal.liverc=(lumped_params$Qtotal.liverc)/1000*60),
-                                              suppress.messages=T))
+ #parameters needed to calculate CL metabolism (first - case of liver)
+ CLh_parameters <- list(
+   Clint=Clint, #uL/min/10^6 cells
+   Funbound.plasma=fub, # unitless fraction
+   Fhep.assay.correction=outlist$Fhep.assay.correction, 
+   million.cells.per.gliver= 110, # 10^6 cells/g-liver
+   liver.density= 1.05, # g/mL
+   Dn=0.17,BW=BW,
+   Vliverc=lumped_params$Vliverc, #L/kg
+   Qtotal.liverc=(lumped_params$Qtotal.liverc)/1000*60)
  
+ CLh_parameters_kidney <- CLh_parameters
+ CLh_parameters_gut <- CLh_parameters
+ #differences between liver vs kidney & gut:
+ CLh_parameters_kidney[["Clint"]] <- Clint_kidney
+ CLh_parameters_kidney[["million.cells.per.gliver"]] <- 13.6 #this is in reality MPPGK but we keep parameter label that relates to liver
+ CLh_parameters_kidney[["Vliverc"]] <- lumped_params$Vkidneyc
+ CLh_parameters_kidney[["liver.density"]] <- 1.05
+ 
+ CLh_parameters_gut[["Clint"]] <- Clint_gut
+ CLh_parameters_gut[["million.cells.per.gliver"]] <- 21.1 #MPPGG
+ CLh_parameters_gut[["Vliverc"]] <- lumped_params$Vgutc
+ CLh_parameters_gut[["liver.density"]] <- 1.05
+ 
+ CLh_value <- as.numeric(calc_hepatic_clearance(hepatic.model="unscaled", parameters=CLh_parameters, suppress.messages=T))
+ CLkidney_value <- as.numeric(calc_hepatic_clearance(hepatic.model="unscaled", parameters=CLh_parameters_kidney, suppress.messages=T))
+ CLgut_value <- as.numeric(calc_hepatic_clearance(hepatic.model="unscaled", parameters=CLh_parameters_gut, suppress.messages=T))
+ 
+ #this might be outdated / not needed:
  if(!is.null(clh.cv)) {
      clh.sd <- sqrt(log(clh.cv^2 + 1))
      clh.mean <- log(CLh_value) - (clh.sd^2)/2 #of course, this is mean on the log scale... not E(X) (which we want == CLh_value)
      CLh_value <- rlnorm(1, clh.mean, clh.sd)
  }
+ 
  outlist <- c(outlist,
     list(Clmetabolismc= CLh_value,
+         CLmetabolism_gut = CLgut_value,
+         CLmetabolism_kidney = CLkidney_value,
          million.cells.per.gliver=110,
          Fgutabs=Fgutabs)) #L/h/kg BW
  outlist <- c(outlist,Rblood2plasma=as.numeric(1 - hematocrit + hematocrit * PCs[["Krbc2pu"]] * fub))
  
- #add Km and Vmax (if they don't exist, add 0 and 0)
- if((class(km) != "try-error") && (class(Vmax) != "try-error")) {
-     outlist <- c(outlist, "Vmax"=Vmax, "km"=km)
- } else {
-     outlist <- c(outlist[sort(names(outlist))], "Vmax"=0, "km"=0)
- }
+ # #add Km and Vmax (if they don't exist, add 0 and 0)
+ # if((class(km) != "try-error") && (class(Vmax) != "try-error")) {
+ #     outlist <- c(outlist, "Vmax"=Vmax, "km"=km)
+ # } else {
+ #     outlist <- c(outlist[sort(names(outlist))], "Vmax"=0, "km"=0)
+ # }
  
   return(outlist)
 }

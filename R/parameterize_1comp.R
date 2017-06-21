@@ -1,4 +1,4 @@
-parameterize_1comp <- function(chem.cas=NULL,chem.name=NULL,species='Human',default.to.human=F)
+parameterize_1comp <- function(chem.cas=NULL,chem.name=NULL,species='Human',default.to.human=F, clint.values=NULL)
 {
  physiology.data <- physiology.data
 if(is.null(chem.cas) & is.null(chem.name)) stop('Must specify chem.name or chem.cas')
@@ -6,7 +6,7 @@ params <- list()
 
 params[['Vdist']] <- calc_vdist(chem.cas=chem.cas,chem.name=chem.name,species=species,default.to.human=default.to.human,suppress.messages=T)
 
-params[['kelim']] <- calc_elimination_rate(chem.cas=chem.cas,chem.name=chem.name,species=species,suppress.messages=T,default.to.human=default.to.human)
+params[['kelim']] <- calc_elimination_rate(chem.cas=chem.cas,chem.name=chem.name,species=species,suppress.messages=T,default.to.human=default.to.human, clint.values=clint.values)
 
 params[['kgutabs']] <- 1
 

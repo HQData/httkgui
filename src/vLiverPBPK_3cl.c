@@ -88,40 +88,15 @@ static double parms[45];
 double lastterm; //for calculating this 'last term to subtract' 
 
 /*----- Initializers */ 
-void initmod_laser (void (* odeparms)(int *, double *))
+void initmod_3cl (void (* odeparms)(int *, double *))
 {
   int N=45;
   odeparms(&N, parms);
 }
-void getParms_laser (double *inParms, double *out, int *nout) {
-/*----- Model scaling */
-  int i;
-  for (i = 0; i < *nout; i++) {
-    parms[i] = inParms[i];
-  }
-  kgutabs = kgutabs * 24 ;
-  CLmetabolism = CLmetabolismc * 24 * BW ;
-  Qcardiac = Qcardiacc * 24 * pow ( BW , 0.75 ) ;
-  Qgfr = Qgfrc * pow ( BW , 0.75 ) * 24 ;
-  Qgut = Qcardiac * Qgutf ;
-  Qkidney = Qcardiac * Qkidneyf ;
-  Qliver = Qcardiac * Qliverf ;
-  Qrest = Qcardiac - ( Qgut + Qkidney + Qliver ) ;
-  Vart = Vartc * BW ;
-  Vgut = Vgutc * BW ;
-  Vkidney = Vkidneyc * BW;
-  Vliver = Vliverc * BW ;
-  Vlung = Vlungc * BW ;
-  Vrest = Vrestc * BW ;
-  Vven = Vvenc * BW ;
 
-  for (i = 0; i < *nout; i++) {
-    out[i] = parms[i];
-  }
-  }
 /*----- Dynamics section */
 
-void derivs_laser (int *neq, double *pdTime, double *y, double *ydot, double *yout, int *ip)
+void derivs_3cl (int *neq, double *pdTime, double *y, double *ydot, double *yout, int *ip)
 {
   yout[ID_Cgut] = y[ID_Agut] / Vgut ;
 
@@ -151,7 +126,7 @@ void derivs_laser (int *neq, double *pdTime, double *y, double *ydot, double *yo
       lastterm = (Vmax_gut * y[ID_Agut] / Vgut / Kgut2plasma) / (Km_gut + y[ID_Agut] / Vgut / Kgut2plasma);
   }
   ydot[ID_Agut] = kgutabs * y[ID_Agutlumen] + Qgut * ( y[ID_Aart] / Vart - y[ID_Agut] / Vgut * Ratioblood2plasma / Kgut2plasma / Fraction_unbound_plasma ) - lastterm;
-  /* End Aliver flow. */
+  /* End Agut flow. */
   
   
   /* Aliver flow: modified by subtracting term (lastterm) proportional to liver-specific metabolism */
@@ -160,10 +135,12 @@ void derivs_laser (int *neq, double *pdTime, double *y, double *ydot, double *yo
   } else {
       lastterm = (Vmax_liver * y[ID_Aliver] / Vliver / Kliver2plasma) / (Km_liver + y[ID_Aliver] / Vliver / Kliver2plasma);
   }
-  ydot[ID_Aliver] = Qliver * y[ID_Aart] / Vart + Qgut * y[ID_Agut] / Vgut * Ratioblood2plasma / Kgut2plasma / Fraction_unbound_plasma - ( Qliver + Qgut ) * y[ID_Aliver] / Vliver / Kliver2plasma / Fraction_unbound_plasma * Ratioblood2plasma - lastterm;
+  ydot[ID_Aliver] = Qliver * y[ID_Aart] / Vart + Qgut * y[ID_Agut] / Vgut * Ratioblood2plasma / Kgut2plasma / Fraction_unbound_plasma - 
+    ( Qliver + Qgut ) * y[ID_Aliver] / Vliver / Kliver2plasma / Fraction_unbound_plasma * Ratioblood2plasma - lastterm;
   /* End Aliver flow. */
   
-  ydot[ID_Aven] = ( ( Qliver + Qgut ) * y[ID_Aliver] / Vliver / Kliver2plasma + Qkidney * y[ID_Akidney] / Vkidney / Kkidney2plasma + Qrest * y[ID_Arest] / Vrest / Krest2plasma ) * Ratioblood2plasma / Fraction_unbound_plasma - Qcardiac * y[ID_Aven] / Vven ;
+  ydot[ID_Aven] = ( ( Qliver + Qgut ) * y[ID_Aliver] / Vliver / Kliver2plasma + Qkidney * y[ID_Akidney] / Vkidney / Kkidney2plasma + 
+  Qrest * y[ID_Arest] / Vrest / Krest2plasma ) * Ratioblood2plasma / Fraction_unbound_plasma - Qcardiac * y[ID_Aven] / Vven ;
 
   ydot[ID_Alung] = Qcardiac * ( y[ID_Aven] / Vven - y[ID_Alung] / Vlung * Ratioblood2plasma / Klung2plasma / Fraction_unbound_plasma ) ;
 
@@ -171,15 +148,17 @@ void derivs_laser (int *neq, double *pdTime, double *y, double *ydot, double *yo
 
   ydot[ID_Arest] = Qrest * ( y[ID_Aart] / Vart - y[ID_Arest] / Vrest * Ratioblood2plasma / Krest2plasma / Fraction_unbound_plasma ) ;
 
-  /* Aliver flow: modified by subtracting term (lastterm) proportional to liver-specific metabolism */
+  /* Akidney flow: modified by subtracting term (lastterm) proportional to liver-specific metabolism */
   if(Km_kidney==0) {
     lastterm = - CLmetabolism_kidney * y[ID_Akidney] / Vkidney / Kkidney2plasma;
-    ydot[ID_Akidney] = Qkidney * y[ID_Aart] / Vart - Qkidney * y[ID_Akidney] / Vkidney / Kkidney2plasma * Ratioblood2plasma / Fraction_unbound_plasma - Qgfr * y[ID_Akidney] / Vkidney / Kkidney2plasma - lastterm;
+    ydot[ID_Akidney] = Qkidney * y[ID_Aart] / Vart - Qkidney * y[ID_Akidney] / Vkidney / Kkidney2plasma * Ratioblood2plasma / Fraction_unbound_plasma - 
+      Qgfr * y[ID_Akidney] / Vkidney / Kkidney2plasma - lastterm;
   } else {
     //here not just subtracting an extra term but instead of 'Qgfr term' in the above (and sans extra subtraction):
-    ydot[ID_Akidney] = Qkidney * y[ID_Aart] / Vart - Qkidney * y[ID_Akidney] / Vkidney / Kkidney2plasma * Ratioblood2plasma / Fraction_unbound_plasma - ((Vmax_kidney * y[ID_Akidney])/(Km_kidney + y[ID_Akidney]));
+    ydot[ID_Akidney] = Qkidney * y[ID_Aart] / Vart - Qkidney * y[ID_Akidney] / Vkidney / Kkidney2plasma * Ratioblood2plasma / Fraction_unbound_plasma - 
+      ((Vmax_kidney * y[ID_Akidney])/(Km_kidney + y[ID_Akidney]));
   }
-  /* End Aliver flow. */
+  /* End Akidney flow. */
   
 
   ydot[ID_Atubules] = Qgfr * y[ID_Akidney] / Vkidney / Kkidney2plasma ;

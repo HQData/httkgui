@@ -18,6 +18,7 @@ solve_pbtk <- function(chem.name = NULL,
                     recalc.blood2plasma=F,
                     recalc.clearance=F,
                     dosing.matrix=NULL,
+                    use.3cl = FALSE,
                     ...)
 {
   Aart <- Agut <- Agutlumen <- Alung <- Aliver <- Aven <- Arest <- Akidney <- Cgut <- Vgut <- Cliver <- Vliver <- Cven <- Vven <- Clung <- Vlung <- Cart <- Vart <- Crest <- Vrest <- Ckidney <- Vkidney <- NULL
@@ -157,31 +158,46 @@ solve_pbtk <- function(chem.name = NULL,
   names(parameters)[substr(names(parameters),1,1) == 'K'] <- 
       gsub('2pu','2plasma',names(parameters)[substr(names(parameters),1,1) == 'K'])
   
-  parameters <- initparms(parameters[!(names(parameters) %in% c('Rblood2plasma',
-                                                                "Fhep.assay.correction",
-                                                                "Krbc2plasma",
-                                                                "million.cells.per.gliver",
-                                                                "Fgutabs",
-                                                                "Funbound.plasma",
-                                                                "Clmetabolismc"))])
+  
+  #get rid of names that are not needed
+  parameters <- parameters[!(names(parameters) %in% c('Rblood2plasma',
+                                        "Fhep.assay.correction",
+                                        "Krbc2plasma",
+                                        "million.cells.per.gliver",
+                                        "Fgutabs",
+                                        "Funbound.plasma",
+                                        "Clmetabolismc"))]
+  
 
   
+  if(use.3cl) {
+    parameters <- model_scaling_3cl(parameters) #initparms_3cl is wrong
+    func_name <- "derivs_3cl"
+    init_name <- "initmod_3cl"
+  } else {
+    parameters <- initparms(parameters)
+    func_name <- "derivs"
+    init_name <- "initmod"
+  }
+  
   state <-initState(parameters,state)
+  
+  
   if(is.null(dosing.matrix)){
     if(is.null(doses.per.day)){
       out <- ode(y = state, 
                  times = times,
-                 func="derivs", 
+                 func=func_name, 
                  parms=parameters, 
-                 method=method,rtol=rtol,atol=atol,dllname="httk",initfunc="initmod", 
+                 method=method,rtol=rtol,atol=atol,dllname="httk",initfunc=init_name, 
                  nout=length(Outputs),outnames=Outputs,...)
   } else{
       length <- length(seq(start + 1/doses.per.day,end-1/doses.per.day,1/doses.per.day))
       eventdata <- data.frame(var=rep('Agutlumen',length),
                               time = round(seq(start + 1/doses.per.day,end-1/doses.per.day,1/doses.per.day),8),
                               value = rep(dose,length), method = rep("add",length))
-      out <- ode(y = state, times = times, func="derivs", parms = parameters,
-                 method=method,rtol=rtol,atol=atol, dllname="httk",initfunc="initmod", 
+      out <- ode(y = state, times = times, func=func_name, parms = parameters,
+                 method=method,rtol=rtol,atol=atol, dllname="httk",initfunc=init_name, 
                  nout=length(Outputs),outnames=Outputs,events=list(data=eventdata),...)
     }
   } else{
@@ -190,13 +206,13 @@ solve_pbtk <- function(chem.name = NULL,
                             method = rep("add",length(dosing.times)))                          
     out <- ode(y = state, 
                times = times, 
-               func = "derivs", 
+               func = func_name, 
                parms = parameters,
                method = method,
                rtol = rtol,
                atol = atol, 
                dllname = "httk",
-               initfunc = "initmod", 
+               initfunc = init_name, 
                nout = length(Outputs),
                outnames = Outputs,events=list(data=eventdata),
                ...)

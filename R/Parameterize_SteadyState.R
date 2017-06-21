@@ -1,6 +1,7 @@
 # This function retrieves the paramters needed to run the constant infusion dose model for determining steady-state concentration.
 
-parameterize_steadystate <- function(chem.cas=NULL,chem.name=NULL,species="Human",clint.pvalue.threshold=0.05,default.to.human=F,human.clint.fub=F)
+parameterize_steadystate <- function(chem.cas=NULL,chem.name=NULL,species="Human",
+                                     clint.pvalue.threshold=0.05,default.to.human=F,human.clint.fub=F)
 
 {
   physiology.data <- physiology.data
