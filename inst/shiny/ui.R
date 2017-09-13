@@ -44,10 +44,11 @@ additional_parameters <- c(
 shiny::shinyUI(fluidPage(
 
   # Application title
-  titlePanel("httk UI for PBTK models"),
+  titlePanel("TKPlate: interactive PBTK model platform"),
 
   sidebarLayout(
     sidebarPanel(
+      h4("Compound and species"),
         fluidRow(
             column(7, checkboxInput("use_cas", "Use CAS instead of compound name")),
             column(5, checkboxInput("use_add", "Add a new compound"))
@@ -60,6 +61,8 @@ shiny::shinyUI(fluidPage(
       ),
       conditionalPanel("input.use_add == 1", "Please define the compound to use in separate tab on the right"),
       selectInput("species", "Species", c("Human", "Rat", "???")),
+      
+      h4("Exposure"),
       # checkboxGroupInput("compartments", "Compartments of interest", compartment_names, selected=compartment_names),
       # specify options for solve_pbtk: daily.dose, dose, doses.per.day, species, iv.dose, output.units, tsteps, days
       radioButtons("dose_type", "Dose specification", c("daily dose", "per dose + doses/day"), inline=TRUE),
@@ -71,7 +74,9 @@ shiny::shinyUI(fluidPage(
         numericInput("solve.dose", "Per dose/day (mg/kg BW)", 0)
       ),
       checkboxInput("solve.iv.dose", "IV dose (default = oral)", 0),
-      radioButtons("output_type", "Single simulation or Monte Carlo?", c("single"="single", "Monte Carlo"="mc"), inline=TRUE),
+      
+      h4("Model settings"),
+      radioButtons("output_type", "Simulation type", c("Individual (single)"="single", "Population (Monte Carlo)"="mc"), inline=TRUE),
       selectInput("solve.output.units", "Output units", c("mg/L", "mg", "umol", "uM"), selected="uM"),
       fluidRow(
         column(6, numericInput("solve.tsteps", "time steps / hour", 4)),
@@ -82,6 +87,23 @@ shiny::shinyUI(fluidPage(
 
     # Show a plot of the generated distribution
     mainPanel(tabsetPanel(id="main_panel",
+      tabPanel("compound",
+               h3("Information about the compound"),
+               h3("Main metabolic pathway"),
+               selectInput("compound_pathway", "pathway of interest", c("CYP2C9", "CYP2C19", "renal excretion")),
+               h3("Population variability"),
+               HTML("<em>Please use unique names to correctly distinguish between different populations</em>"),
+               fluidRow(
+                 column(textInput("population_new_name", "Name", value = "Population 1"), width = 2),
+                 column(numericInput("population_new_N", "N subjects", value = 1000, step = 100), width = 2),
+                 column(selectInput("population_new_vartype", "Type of variability", 
+                            c("CL only" = "tk", "CL + more parameters (Monte Carlo tab)" = "tk_physbio")), width = 4),
+                 column(numericInput("population_new_multiplier", "CL multiplier", value = 1, step = .1), width = 2),
+                 column(numericInput("population_new_cv", "log-normal CV", value = 0.30, step = 0.05), width = 2)
+               ),
+               actionButton("population_new_submit", "Submit values"),
+               tableOutput("custom_subpopulation_table")
+               ),
       tabPanel("parameters", 
         h3("PBTK model parameter values"),
         checkboxInput("custom_params", "Check here to manually change parameter values", 0, width=500),
@@ -188,10 +210,14 @@ shiny::shinyUI(fluidPage(
                            "Please select Monte Carlo mode on the left to define parameter variability.")
       ),
       tabPanel("results", 
-        h3("Presentation of results of PBTK model"),
-        conditionalPanel("input.output_type == 'mc'", 
-            sliderInput("display_ci", "Uncertainty interval", min = 0, max = 1, value = 0.95, step = .05)),
-        htmlOutput("choose_plot_ui"),
+        h3("PBTK model results"),
+        fluidRow(
+          column(4, htmlOutput("choose_plot_ui")),
+          column(4, conditionalPanel("input.output_type == 'mc'", 
+                                     sliderInput("display_ci", "Uncertainty interval", 
+                                                 min = 0, max = 1, value = 0.95, step = .05))),
+          column(4, htmlOutput("choose_plot_type_ui"))
+        ),
         plotOutput("results_plot_single"),
         fluidRow(
             column(6, 
