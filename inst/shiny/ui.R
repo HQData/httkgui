@@ -80,32 +80,68 @@ shiny::shinyUI(fluidPage(
       selectInput("solve.output.units", "Output units", c("mg/L", "mg", "umol", "uM"), selected="uM"),
       fluidRow(
         column(6, numericInput("solve.tsteps", "time steps / hour", 4)),
-        column(6, numericInput("solve.days", "Simulation length (days)", 10))
+        column(6, numericInput("solve.days", "Simulation length (days)", 1, min = 0.25))
         ),
-      conditionalPanel("input.output_type == 'mc'", actionButton("run", "Solve PBPK model"))
+      conditionalPanel("input.output_type == 'mc'", actionButton("run", "Solve PBPK model")),
+      h4("Downloading results & automated report"),
+      # selectInput("download_choice_mc", 
+      # "Choose dataset to download", 
+      # c("mean estimates with 95% intervals"))),
+      # actionButton("download", "Download dataset as .csv file")
+      HTML("<em>All numerical results can be downloaded as .csv file. Automated summary output of all inputs and outputs can be generated below.</em><br>"),
+      downloadLink("fileDownload", "Download model solution (.csv file)"),
+      conditionalPanel("input.output_type == 'mc'", 
+                       "(Values for Monte Carlo are provided as mean over all simulations)"),
+      selectInput("report_format", "Please choose file format", c("html", "pdf", "Word")),
+      downloadButton("report", "Generate report")
     ),
 
     # Show a plot of the generated distribution
     mainPanel(tabsetPanel(id="main_panel",
-      tabPanel("compound",
+      tabPanel("inputs summary",
                h3("Information about the compound"),
-               h3("Main metabolic pathway"),
-               selectInput("compound_pathway", "pathway of interest", c("CYP2C9", "CYP2C19", "renal excretion")),
-               h3("Population variability"),
-               HTML("<em>Please use unique names to correctly distinguish between different populations</em>"),
+               tableOutput("compound_table"),
                fluidRow(
-                 column(textInput("population_new_name", "Name", value = "Population 1"), width = 2),
-                 column(numericInput("population_new_N", "N subjects", value = 1000, step = 100), width = 2),
-                 column(selectInput("population_new_vartype", "Type of variability", 
-                            c("CL only" = "tk", "CL + more parameters (Monte Carlo tab)" = "tk_physbio")), width = 4),
-                 column(numericInput("population_new_multiplier", "CL multiplier", value = 1, step = .1), width = 2),
-                 column(numericInput("population_new_cv", "log-normal CV", value = 0.30, step = 0.05), width = 2)
+                 column(10, 
+                   h3("Population variability"),
+                   conditionalPanel("input.output_type == 'single'", HTML("<em>Only allowed for Monte Carlo simulations.</em>")),
+                   conditionalPanel("input.output_type == 'mc'", 
+                   HTML("<em>Please use unique names to correctly distinguish between different populations</em>"),
+                     fluidRow(
+                       column(textInput("population_new_name", "Name", value = "Population 1"), width = 2),
+                       column(numericInput("population_new_N", "N subjects", value = 100, step = 50), width = 2),
+                       column(selectInput("population_new_vartype", "Type of variability", 
+                                  c("CL only" = "tk", "CL + more parameters (Monte Carlo tab)" = "tk_physbio")), width = 4),
+                       column(numericInput("population_new_multiplier", "CL multiplier", value = 1, step = .1), width = 2),
+                       column(numericInput("population_new_cv", "log-normal CV", value = 0.30, step = 0.05), width = 2)
+                     ),
+                     actionButton("population_new_submit", "Submit values"),
+                     tableOutput("custom_subpopulation_table")
+                 ))
+                 # column(2, 
+                 #      h3("Main metabolic pathway"),
+                 #      selectInput("compound_pathway", "pathway of interest", c("CYP2C9", "CYP2C19", "renal excretion")))
                ),
-               actionButton("population_new_submit", "Submit values"),
-               tableOutput("custom_subpopulation_table")
+               fluidRow(
+                 column(5, 
+                        # h3("Main metabolic pathway"),
+                        # selectInput("compound_pathway", "Main metabolic pathway (for automated settings)", c("CYP2C9", "CYP2C19", "renal excretion")),
+                        h3("Model visualisation"),
+                        div(style = "margin: 20px auto; width: 300px", imageOutput("model_visual"))
+                 ),
+                 column(6, 
+                        h3("Experimental data"),
+                        HTML("<em>Experimental data can be used to validate the model or help inform the model parameters.<br><br></em>"),
+                        fileInput("experimental_data_input", "Please choose the file (Excel)"),
+                        tableOutput("experimental_data_table"),
+                        HTML("Format: .csv file with columns: time, mean, lower, upper (optional), name (optional).<br>
+                             Lower and upper denote confidence bounds; 'name' should match subpopulation names in 'Population variability'."))
+               )
                ),
       tabPanel("parameters", 
         h3("PBTK model parameter values"),
+        conditionalPanel("input.output_type == 'mc'", 
+                         HTML("<em>95% interval values will appear here once the results have been generated</em>")),
         checkboxInput("custom_params", "Check here to manually change parameter values", 0, width=500),
         conditionalPanel("input.custom_params == 1",
                          HTML("<em>To erase user-defined values, please restart the application. </em><br>
@@ -129,7 +165,7 @@ shiny::shinyUI(fluidPage(
                              )
                          ),
                          actionButton("cparams_submit", "Submit values"),
-                         tableOutput("custom_param_table"),
+                         DT::dataTableOutput("custom_param_table"),
                          h3("Original parameter values"),
                          em("These values will be replaced by user-defined values.")
         ),
@@ -182,9 +218,9 @@ shiny::shinyUI(fluidPage(
       tabPanel("Monte Carlo settings", 
         conditionalPanel("input.output_type == 'mc'", 
                        h3("Define Monte Carlo simulation parameters"),
-                       numericInput("nSimulations", "Number of draws", 50),
+                       # numericInput("nSimulations", "Number of draws", 50), #this has been superseeded by subpopulation generation
                        checkboxInput("mc_use_log", "Use log-normal distributions", 1),
-                       h3("Coefficient of variation values"),
+                       h3("Coefficient of variation values: physio-bio parameters"),
                        fluidRow(
                        column(4,
                         sliderInput("cv.water",		'Total Body Water' 			, 0, 1, .3), 
@@ -202,9 +238,9 @@ shiny::shinyUI(fluidPage(
                        sliderInput("cv.gfr",		'GFR' 						, 0, 1, .3),
                        sliderInput("cv.abt",		'Average Body Temperature' 	, 0, 1, 0)
                        )
-                       ),
-                       h3("Additional variability on CLh parameter"),
-                       sliderInput("cv.clh", "CLh (log-normal CV)", 0, 1, 0)
+                       )
+                       # h3("Additional variability on CLh parameter"),
+                       # sliderInput("cv.clh", "CLh (log-normal CV)", 0, 1, 0)
           ),
           conditionalPanel("input.output_type == 'single'",
                            "Please select Monte Carlo mode on the left to define parameter variability.")
@@ -220,20 +256,13 @@ shiny::shinyUI(fluidPage(
         ),
         plotOutput("results_plot_single"),
         fluidRow(
-            column(6, 
+            column(5, 
                 h3("Cmax, AUC, Half-life calculations"),
                 tableOutput("results_numerical")
                 # plotOutput("results_plot")
             ),
             column(6,
-                h3("Downloading model results"),
-                conditionalPanel("input.output_type == 'mc'", 
-                                 "Values for Monte Carlo provided as mean over all simulations"),
-                                 # selectInput("download_choice_mc", 
-                                             # "Choose dataset to download", 
-                                             # c("mean estimates with 95% intervals"))),
-                # actionButton("download", "Download dataset as .csv file")
-                downloadLink("fileDownload", "Download model solution (.csv file)")
+                htmlOutput("validation_results")
             ))
         
         # uiOutput("results_plot_ui")

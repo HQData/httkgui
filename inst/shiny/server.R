@@ -51,12 +51,20 @@ shiny::shinyServer(function(input, output, session) {
   
   observeEvent(input$use_add, {
       updateTabsetPanel(session, "main_panel",
-                        selected = ifelse(input$use_add == 1, "add compound", "parameters")
+                        selected = ifelse(input$use_add == 1, "add compound", "inputs summary")
       )
   })
   
   # compound information (define population) --------------------------------
-
+  compound_summary <- reactive({
+    filter(chem.physical_and_invitro.data, Compound == input$compound) %>%
+      select(Compound, CAS, SMILES.desalt, logP, pKa_Donor, pKa_Accept)
+  })
+  
+  output$compound_table <- renderTable({
+    compound_summary()
+  })
+  
   # observeEvent(input$custom_params, {
   #   if(!input$custom_params && exists("custom_param_values"))
   #     rm(custom_param_values, envir=.GlobalEnv)
@@ -97,7 +105,7 @@ shiny::shinyServer(function(input, output, session) {
     #clean the inputs
     updateTextInput(session, "population_new_name", value = paste("Population", length(populations_list) + 1))
     updateNumericInput(session, "population_new_cv", value = .3)
-    updateNumericInput(session, "population_new_N", value = 1000)
+    updateNumericInput(session, "population_new_N", value = 100)
     # updateNumericInput(session, "population_new_vartype", value = 0)
     updateNumericInput(session, "population_new_multiplier", value = 1)
   })
@@ -108,8 +116,16 @@ shiny::shinyServer(function(input, output, session) {
       return(custom_subpopulation)
   })
   
+  #experiemental data display:
+  output$experimental_data_table <- renderTable({
+    experimental_data()
+  })
   
+  output$model_visual <- renderImage({
+    list(src = "pbtk_model.png", alt = "PBTK model schematic", width = 300)
+  }, deleteFile = FALSE)
   
+  # model parameters  ---------
   
   observeEvent(input$add_submit, {
       if(input$use_add) {
@@ -183,7 +199,7 @@ shiny::shinyServer(function(input, output, session) {
   })
   # custom_param_values <- data.frame("parameter"=c(), "description"=c(), "value"=c(), 
                                     # "MC 2.5%"=c(), "MC mean"=c(), "MC 97.5%"=c())
-  output$custom_param_table <- renderTable({
+  output$custom_param_table <- renderDataTable({
       input$cparams_submit
       if(exists("custom_param_values"))
           return(custom_param_values)
@@ -202,6 +218,8 @@ shiny::shinyServer(function(input, output, session) {
                       GFR = input$cv.gfr,
                       `Average Body Temperature` = input$cv.abt
                       ))
+  
+  #this returns one set of parameters
   parameters <- reactive({
       param_list <- list("chem.cas"=NULL,"chem.name" = input$compound, "species" = input$species, 
                          "default.to.human" = F,
@@ -234,7 +252,6 @@ shiny::shinyServer(function(input, output, session) {
           torep <- custom_param_values$value[which_are_additional]
           names(torep) <- custom_param_values$parameter[which_are_additional]
           param_list$override.input <- torep
-          # browser()
           inits <- do.call(parameterize_pbtk, param_list) #overwrite previous calc
         }
           
@@ -246,51 +263,63 @@ shiny::shinyServer(function(input, output, session) {
       
   })
       
-  output$parameters_df <- renderTable({
-      # 
-      ww <- parameters()
-      parameter_df <- data.frame("parameter"=names(ww), 
+  parameters_summary <- reactive({
+    ww <- parameters()
+    if(input$output_type == "single" || (input$run == 0)) {
+      parameter_df <- data.frame("parameter"=as.character(names(ww)), 
                                  "description" = parameter_names[names(ww)], 
                                  "value"=unlist(ww))
+    }
+    else if(input$output_type == "mc") {
+      if(is.null(results_mc()))
+        return(NULL)
       
-      # if(input$output_type == "single")
-      if(input$output_type == "mc") {
-          #expand the data frame with uncertainty info:
-          df <- apply(do.call(rbind, lapply(results_mc()[["inits"]], unlist)), 2, function(x) {
-              c("mean"=mean(x, na.rm=T), "lci"=quantile(x,.025, na.rm=T), "uci"=quantile(x,.975, na.rm=T))
-          })
-          parameter_df[["MC 2.5%"]] <- df[2,]
-          parameter_df[["MC mean"]] <- df[1,]
-          parameter_df[["MC 97.5%"]] <- df[3,]
-          
-      }
-          return(parameter_df)
-          
+      parameter_df <- data.frame("parameter"=names(ww), 
+                                 "description" = parameter_names[names(ww)], 
+                                 stringsAsFactors = F)
+      
+      #expand the data frame with uncertainty info:
+      df <- lapply(results_mc(), function(x) lapply(x[["inits"]], unlist) %>% do.call(rbind, .)) %>% do.call(rbind, .) %>%
+        apply(2, function(x) {c("mean"=mean(x, na.rm=T), 
+                                "lci"=quantile(x,.025, na.rm=T), 
+                                "uci"=quantile(x,.975, na.rm=T))}) %>%
+        t() %>% as.data.frame()
+      
+      parameter_df[["MC 2.5%"]]  <- df[parameter_df$parameter,2]
+      parameter_df[["MC mean"]]  <- df[parameter_df$parameter,1]
+      parameter_df[["MC 97.5%"]] <- df[parameter_df$parameter,3]
+    }
+    return(parameter_df)
+  })
+  
+  output$parameters_df <- renderTable({
+    parameters_summary()
   })
   
   # calculation of results(single, monte carlo + summary df for MC) ---------------------------------------
   
   
   results_single <- reactive({
-      solve_list <- list(
-          parameters = parameters(),
-          chem.name=input$compound,
-          plots=FALSE,
-          suppress.messages = TRUE,
-          output.units = input$solve.output.units,
-          iv.dose = input$solve.iv.dose,
-          tsteps = input$solve.tsteps,
-          days = input$solve.days
-      )
-      if(input$dose_type == "daily dose")
-          solve_list$daily.dose=input$solve.daily.dose
-      if(input$dose_type == "per dose + doses/day") {
-          solve_list$doses.per.day=input$solve.doses
-          solve_list$dose=input$solve.dose
-      }
-      
-      if(input$output_type == "single") 
-          return(do.call(solve_pbtk, solve_list))
+      # solve_list <- list(
+      #     parameters = parameters(),
+      #     chem.name=input$compound,
+      #     plots=FALSE,
+      #     suppress.messages = TRUE,
+      #     output.units = input$solve.output.units,
+      #     iv.dose = input$solve.iv.dose,
+      #     tsteps = input$solve.tsteps,
+      #     days = input$solve.days
+      # )
+      # if(input$dose_type == "daily dose")
+      #     solve_list$daily.dose=input$solve.daily.dose
+      # if(input$dose_type == "per dose + doses/day") {
+      #     solve_list$doses.per.day=input$solve.doses
+      #     solve_list$dose=input$solve.dose
+      # }
+      # 
+      # if(input$output_type == "single") 
+      #     return(do.call(solve_pbtk, solve_list))
+      generate_subpopulation(N = 1)
   })
   
   
@@ -342,8 +371,10 @@ shiny::shinyServer(function(input, output, session) {
                        "tissuelist" = list(liver=c("liver"), kidney=c("kidney"), lung=c("lung"), gut=c("gut")),
                        "force.human.clint.fub" = F, "clint.pvalue.threshold" = 0.05, 
                        "monte.carlo" = FALSE, "monte.carlo.cv" = mc_cv(), "monte.carlo.log" = input$mc_use_log)
-    if(input$cv.clh > 0)
-      param_list$clh.cv <- input$cv.clh
+    
+    # variation on CL done this way is now obsolete: we apply it later
+    # if(input$cv.clh > 0) 
+    #   param_list$clh.cv <- input$cv.clh
     
     if(param_to_vary_before)
       param_list$monte.carlo <- TRUE
@@ -404,27 +435,34 @@ shiny::shinyServer(function(input, output, session) {
   }
   
   results_mc <- eventReactive(input$run, {
-    # browser()
-    if(input$output_type == "mc")
-        # list(
-        #   generate_subpopulation(param_to_vary_after = data.frame(
-        #     "names" = c("Clmetabolismc", "CLmetabolism_gut", "CLmetabolism_kidney"),
-        #     "cv" = c(0.3, 0.3, 0.3),
-        #     "multiplier" = 1), N = input$nSimulations),
-        #   generate_subpopulation(param_to_vary_after = data.frame(
-        #     "names" = c("Clmetabolismc", "CLmetabolism_gut", "CLmetabolism_kidney"),
-        #     "cv" = c(0.3, 0.3, 0.3),
-        #     "multiplier" = 4), N = input$nSimulations)
-        # )
-        lapply(populations_list, function(x) do.call(generate_subpopulation, x))
+    if(input$output_type == "mc") {
+      if(input$population_new_submit < 1) {
+        showModal(modalDialog(title = "No population defined", 
+                              "Please specify at least one group in the Population Variability section"))
+        return(NULL)
+      }
+    
+      lapply(populations_list, function(x) do.call(generate_subpopulation, x))
+    } else {
+      return(NULL)
+    }
   })
   
   endpoints <- reactive({
       # ww <- c("Cplasma", paste0("C", input$compartments), "Crest", "Ametabolized", "Atubules", "Agutlumen")
       ww <- c("Cplasma", paste0("C", c("lung", "kidney", "gut", "liver")), "Crest", "Ametabolized", "Atubules", "Agutlumen")
+      names(ww) <- ww
       # names(ww) <- c("Plasma", input$compartments, "rest", "metabolized", "tubules", "gut lumen")
-      names(ww) <- c("Plasma", c("lung", "kidney", "gut", "liver"), "rest", "metabolized", "tubules", "gut lumen")
+      # names(ww) <- c("Plasma", c("lung", "kidney", "gut", "liver"), "rest", "metabolized", "tubules", "gut lumen")
       return(ww)
+  })
+  
+  experimental_data <- reactive({
+    inFile <- input$experimental_data_input
+    if(is.null(inFile))
+      return(NULL)
+    
+    read.csv(inFile$datapath)
   })
   
   results_mc_df_v2 <- reactive({
@@ -444,11 +482,14 @@ shiny::shinyServer(function(input, output, session) {
   })
   
   # visualisation functions -------------------------------------------------
-  auto_gg <- function(ggdata, type="PBTK", nameval = "all", facet = FALSE, grouping = FALSE, varname = "Cplasma") {
+  auto_gg <- function(ggdata, type="PBTK", nameval = "all", facet = FALSE, grouping = FALSE, varname = "Cplasma", observed = NULL) {
     # if(!is.null(facet)) ggdata$facet <- ggdata[[facet]]
     # named <- paste0("output/", compound_name, "_", type, "_plot_", nameval, ".jpg")
     if(is.null(ggdata$name)) ggdata$name <- "All"
-    
+    if(is.null(ggdata$lci) || is.null(ggdata$uci)) {
+      ggdata$lci <- ggdata$mean
+      ggdata$uci <- ggdata$mean
+    }
     gg <- ggplot(ggdata, aes(y = mean, x = time)) + 
     {if(grouping) geom_line(size = 1.5, aes(color=name, group = name)) } +
     {if(!grouping) geom_line(size = 1.5) } +
@@ -466,14 +507,23 @@ shiny::shinyServer(function(input, output, session) {
       { if(!grouping)  scale_color_discrete(guide = FALSE) } +
       { if(facet) facet_grid(. ~ name) }
     
-    if(exists("observed")) {
-      if(!grouping) compare <- observed %>% filter(name == "All")
-      if(grouping) compare <- observed %>% filter(name != "All")
+    #observed is a df with cols: name, time, mean, lower (optional), upper (optional), observed_group (optional)
+    if(is.null(observed$lower) || is.null(observed$upper)) {
+      observed$lower <- observed$mean
+      observed$upper <- observed$mean
+    }
+    if(!is.null(observed)) {
+      if(!is.null(observed$name)) {
+        if(!grouping) compare <- observed %>% filter(name == "All")
+        if(grouping) compare <- observed %>% filter(name != "All")
+      } else {
+        compare <- observed
+      }
       if(nrow(compare) > 0) {
         if(is.null(observed$observed_group)) {
           gg <- gg +
-            geom_errorbar(data = compare, aes(ymin = lower, ymax = upper, x = time), width = 0, color = observed_data_color) +
-            geom_point(data = compare, aes(x = time, y = mean), size = 1.5, color = observed_data_color)
+            geom_errorbar(data = compare, aes(ymin = lower, ymax = upper, x = time), width = 0) +
+            geom_point(data = compare, aes(x = time, y = mean), size = 1.5)
         } else {
           gg <- gg +
           {if(grouping) geom_point(data = compare, aes(x = time, y = mean, color = name), size = 2) } +
@@ -484,11 +534,38 @@ shiny::shinyServer(function(input, output, session) {
       }
     }
     
-    ggsave(plot = gg, filename = "test.jpg", units="cm", width=17, height=12)
+    # ggsave(plot = gg, filename = "test.jpg", units="cm", width=17, height=12)
     # ggsave(plot = gg, filename = named, units="cm", width=17, height=12)
     return(gg)
   }
   
+  #two df's observed and predicted only need mean and time columns... for now
+  auto_obspred <- function(observed, prediction) {
+    df_op <- data.frame()
+    for(i in 1:nrow(observed)) {
+      t1 <- observed$time[i]
+      m1 <- observed$mean[i]
+      wm <- which.min(abs(prediction$time - t1))
+      # t2 <- predicted$time[wm]
+      m2 <- prediction$mean[wm]
+      df_op <- rbind(df_op, data.frame("time" = t1, "observed" = m1, "predicted" = m2))
+    }
+    coordmax <- max(c(observed$mean, prediction$mean))
+    gg <- ggplot(df_op) + geom_point(aes(x=observed, y=predicted), shape = 18, size = 2) + 
+      geom_abline(intercept = 0, slope = 1) + 
+      geom_abline(intercept=0, slope = .1, linetype = 3) +
+      geom_abline(intercept=0, slope = .33, linetype = 2) +
+      geom_abline(intercept=0, slope = 10, linetype = 3) +
+      geom_abline(intercept=0, slope = 3, linetype = 2) +
+      coord_cartesian(xlim = c(0, coordmax * 1.1), ylim = c(0, coordmax * 1.1)) +
+      theme_minimal(base_size = 20) +
+      # xlab(paste("observed", output_var_pbtk, default_output_unit)) +
+      # ylab(paste("predicted", output_var_pbtk, default_output_unit)) +
+      ggtitle("Observed vs predicted plot for the model") +
+      labs(subtitle = "(dotted line = 10-fold difference, dashed = 3-fold)")
+    
+    return(gg)
+  }
   
   # presentation of results -------------------------------------------------
   
@@ -511,15 +588,18 @@ shiny::shinyServer(function(input, output, session) {
             #display options:
             fvar <- F
             gvar <- F
-            if(input$choose_plot_type == "group")
-              gvar <- T
-            if(input$choose_plot_type == "facet")
-              fvar <- T
-            if(input$choose_plot_type == "both"){
-              fvar <- T; gvar <- T }
+            # browser()
+            if(!is.null(input$choose_plot_type)) {
+              if(input$choose_plot_type == "group")
+                gvar <- T
+              if(input$choose_plot_type == "facet")
+                fvar <- T
+              if(input$choose_plot_type == "both"){
+                fvar <- T; gvar <- T }
+            }
             
             tab <- filter(do.call(rbind, results_mc_df_v2()), variable == input$choose_plot)
-            return(auto_gg(tab, facet = fvar, grouping = gvar, varname = input$choose_plot))
+            return(auto_gg(tab, facet = fvar, grouping = gvar, varname = input$choose_plot, observed = experimental_data()))
             # res <- results_mc_df()
             # timevar <- res["mean",,"time"]
             # cd <- which(dimnames(res)[[3]] == input$choose_plot)
@@ -529,11 +609,41 @@ shiny::shinyServer(function(input, output, session) {
             # lines(res["mean",,cd] ~ timevar, type="l", lwd=1.2)
           }
           if(input$output_type == "single") {
-              res <- results_single()
+              # res <- results_single()[["pbtk_result"]][[1]]
+              # cd <- which(colnames(res) == input$choose_plot)
+              # plot(res[,cd] ~ res[,"time"], type="l", xlab="time (days)", ylab=endpoints()[cd])
+              res <- results_single()[["pbtk_result"]][[1]]
               cd <- which(colnames(res) == input$choose_plot)
-              plot(res[,cd] ~ res[,"time"], type="l", xlab="time (days)", ylab=endpoints()[cd])
+              tab <- res[,c(1, cd)] %>% as.data.frame() %>% setNames(c("time", "mean"))
+              return(auto_gg(tab, facet = F, grouping = F, varname = input$choose_plot, observed = experimental_data()))
           }
       }
+  })
+  
+  output$validation_results <- renderUI({
+    if(!is.null(experimental_data()))
+      return(list(
+        h3("Validation against experimental data"),
+        plotOutput("results_plot_obspred")
+      ))
+    
+    return(NULL)
+    
+  })
+  
+  output$results_plot_obspred <- renderPlot({
+    if(!is.null(input$choose_plot)) {
+      if(input$output_type == "mc") {
+        tab <- filter(do.call(rbind, results_mc_df_v2()), variable == input$choose_plot)
+        return(auto_obspred(prediction = tab, observed = experimental_data()))
+      }
+      if(input$output_type == "single") { 
+        res <- results_single()[["pbtk_result"]][[1]]
+        cd <- which(colnames(res) == input$choose_plot)
+        tab <- res[,c(1, cd)] %>% as.data.frame() %>% setNames(c("time", "mean"))
+        return(auto_obspred(prediction = tab, observed = experimental_data()))
+      }
+    }    
   })
 
 # left panel observers ----------------------------------------------------
@@ -546,46 +656,55 @@ shiny::shinyServer(function(input, output, session) {
   })
   
   
-  
+  results_numerical_df <- reactive({
+    if(input$output_type == "mc") {
+      tab <- do.call(rbind, lapply(results_mc(), function(cpop) {
+        lci <- (1-input$display_ci)/2
+        uci <- 1 - (1-input$display_ci)/2
+        
+        df <- apply(data.frame(unlist(cpop[["halflife"]]), 
+                               unlist(cpop[["AUC"]]), 
+                               unlist(cpop[["Cmax"]])), 
+                    2, function(x) {
+                      c("lci"=quantile(x,lci, na.rm=T), "mean"=mean(x, na.rm=T), "uci"=quantile(x,uci, na.rm=T)) 
+                    })    
+        # browser()
+        rownames(df) <- c(paste0(100*lci, "%"), "mean", paste0(100*uci, "%"))
+        colnames(df) <- c("Half-life (Cplasma)", "AUC (Cplasma)", "Cmax (Cplasma)")
+        df <- as.data.frame(t(df))
+        if(length(custom_subpopulation) > 1)
+          df[["model"]] <- cpop[["name"]]
+        
+        return(df)
+      }))
+      
+      return(tab)
+      
+    }
+    if(input$output_type == "single") {
+      if(!is.null(results_single())) {
+        # times <- results_single()[,"time"]
+        # x <- results_single()[,"Cplasma"]
+        # wmax <- which.max(x)
+        # wmin <- which(x < (max(x)/2))
+        # tt <- times[min(wmin[wmin > wmax])] - times[wmax]
+        # return(data.frame("Cplasma half-life" = tt,
+        #                   "Cplasma Cmax" = max(x),
+        #                   "Cplasma AUC" = llTrapAUC(times, x)))
+        return(data.frame("Cplasma half-life" = results_single()[["halflife"]][[1]],
+                          "Cplasma Cmax" = results_single()[["Cmax"]][[1]],
+                          "Cplasma AUC" = results_single()[["AUC"]][[1]]))
+        
+      }
+    }
+  })
   
   output$results_numerical <- renderTable({
-      if(input$output_type == "mc") {
-        tab <- do.call(rbind, lapply(results_mc(), function(cpop) {
-          lci <- (1-input$display_ci)/2
-          uci <- 1 - (1-input$display_ci)/2
-          
-          df <- apply(data.frame(unlist(cpop[["halflife"]]), 
-                                 unlist(cpop[["AUC"]]), 
-                                 unlist(cpop[["Cmax"]])), 
-                      2, function(x) {
-              c("lci"=quantile(x,lci, na.rm=T), "mean"=mean(x, na.rm=T), "uci"=quantile(x,uci, na.rm=T)) 
-          })    
-              # browser()
-          rownames(df) <- c(paste0(100*lci, "%"), "mean", paste0(100*uci, "%"))
-          colnames(df) <- c("Half-life (Cplasma)", "AUC (Cplasma)", "Cmax (Cplasma)")
-          df <- as.data.frame(t(df))
-          if(length(custom_subpopulation) > 1)
-            df[["model"]] <- cpop[["name"]]
-          
-          return(df)
-        }))
-        
-        return(tab)
-        
-      }
-      if(input$output_type == "single") {
-          if(!is.null(results_single())) {
-              times <- results_single()[,"time"]
-              x <- results_single()[,"Cplasma"]
-              wmax <- which.max(x)
-              wmin <- which(x < (max(x)/2))
-              tt <- times[min(wmin[wmin > wmax])] - times[wmax]
-              return(data.frame("Cplasma half-life" = tt,
-                                "Cplasma Cmax" = max(x),
-                                "Cplasma AUC" = llTrapAUC(times, x)))
-          }
-      }
+    results_numerical_df()
   }, rownames = TRUE, digits = 3)
+
+  
+# reporting -----
   
   output$fileDownload <- downloadHandler(
       filename = function() {
@@ -603,6 +722,46 @@ shiny::shinyServer(function(input, output, session) {
       },
       contentType='text/csv'
   )
+  
+  output$report <- downloadHandler(
+    # For PDF output, change this to "report.pdf"
+    filename = "report.html",
+    content = function(file) {
+      # Copy the report file to a temporary directory before processing it, in
+      # case we don't have write permissions to the current working dir (which
+      # can happen when deployed).
+      tempReport <- file.path(tempdir(), "tkplate_report.Rmd")
+      file.copy("tkplate_report.Rmd", tempReport, overwrite = TRUE)
+      
+      # Set up parameters to pass to Rmd document
+      params <- list(name = input$compound,
+                     metabolic_route = input$compound_pathway,
+                     compound_chars = compound_summary(),
+                     pbtk_parameters = parameters_summary(),
+                     population_variability = custom_subpopulation,
+                     results = results_numerical_df(),
+                     plot = filter(do.call(rbind, results_mc_df_v2()), variable == input$choose_plot) %>% 
+                       auto_gg(facet = F, grouping = T, varname = input$choose_plot)
+      )
+      
+      
+      if(input$dose_type == "daily dose")
+        params$dose <- paste("Single dose (mg/kg BW) of", input$solve.daily.dose)
+      if(input$dose_type == "per dose + doses/day")
+        params$dose <- paste(input$solve.doses.per.day, "doses per day;", input$solve.dose, "per dose/day (mg/kg BW)")
+      
+      # Knit the document, passing in the `params` list, and eval it in a
+      # child of the global environment (this isolates the code in the document
+      # from the code in this app).
+      rmarkdown::render(tempReport, output_file = file,
+                        params = params,
+                        envir = new.env(parent = globalenv())
+      )
+    }
+  )
+
+  
+  
 })
 
 

@@ -1,0 +1,62 @@
+---
+output: html_document
+params:
+  name: NA
+  metabolic_route: NA
+  dose: NA
+  compound_chars: NA
+  pbtk_parameters: NA
+  population_variability: NA
+  results: NA
+  plot: NA
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+```
+
+# PBTK model for `r params$name`
+
+```{r compound}
+values <- c("metabolic route" = params$metabolic_route,
+           "model used" = "PBTK model",
+           "exposure" = params$dose,
+           "predicted values" = "Concentration over time, AUC, Cmax, half-life",
+           "external validation data" = "None [work in progress]") 
+
+data.frame("characteristic" = names(values), "value" = values) %>% knitr::kable()
+```
+
+# Compound properties
+
+```{r}
+params$compound_chars %>% knitr::kable()
+```
+
+# PBTK model parameters used
+
+```{r}
+params$pbtk_parameters %>% filter(parameter %in% c("Fgutabs", "Funbound.plasma", "kgutabs", "Rblood2plasma")) %>% knitr::kable()
+```
+
+# Inter-individual variability
+`r nrow(params$population_variability)` subpopulations were simulated to create overall population. Their characteristics are:
+
+```{r}
+params$population_variability
+```
+
+# Results
+
+##AUC, half-life and Cmax values
+```{r}
+knitr::kable(params$results)
+```
+
+## Results plot
+```{r}
+params$plot
+```
+
+
+
