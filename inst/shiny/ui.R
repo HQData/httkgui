@@ -81,7 +81,7 @@ shiny::shinyUI(fluidPage(
       fluidRow(
         column(6, numericInput("solve.tsteps", "time steps / hour", 4)),
         column(6, numericInput("solve.days", "Simulation length (days)", 1, min = 0.25))
-        ),
+      ),
       conditionalPanel("input.output_type == 'mc'", actionButton("run", "Solve PBPK model")),
       h4("Downloading results & automated report"),
       # selectInput("download_choice_mc", 
@@ -92,7 +92,9 @@ shiny::shinyUI(fluidPage(
       downloadLink("fileDownload", "Download model solution (.csv file)"),
       conditionalPanel("input.output_type == 'mc'", 
                        "(Values for Monte Carlo are provided as mean over all simulations)"),
-      selectInput("report_format", "Please choose file format", c("html", "pdf", "Word")),
+      # selectInput("report_format", "Please choose file format", c("html", "pdf", "docx")),
+      radioButtons('report_format', 'Please choose file format for report', c('PDF', 'HTML', 'Word'),
+                   inline = TRUE),
       downloadButton("report", "Generate report")
     ),
 
