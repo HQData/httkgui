@@ -175,6 +175,7 @@ solve_pbtk <- function(chem.name = NULL,
     func_name <- "derivs_3cl"
     init_name <- "initmod_3cl"
   } else {
+    parameters <- parameters[!(names(parameters) %in% c("CLmetabolism_gut", "CLmetabolism_kidney"))]
     parameters <- initparms(parameters)
     func_name <- "derivs"
     init_name <- "initmod"

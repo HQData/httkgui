@@ -11,21 +11,23 @@ parameterize_pbtk <- function(chem.cas = NULL,
                               default.to.human = F,
                               tissuelist=list(liver=c("liver"),kidney=c("kidney"),lung=c("lung"),gut=c("gut")),
                               force.human.clint.fub = F,
-                              clint.enzyme.data = NULL,
+                              clint.data = NULL,
                               clint.pvalue.threshold = 0.05,
                               monte.carlo = FALSE,
                               monte.carlo.log = TRUE, #whether to do draws from log-normal
                               monte.carlo.cv = NULL, 
                               clh.cv = NULL,
-                              override.inputs = NULL) {
+                              override.inputs = NULL,
+                              override_httk_param = NULL) {
     
   physiology.data <- physiology.data
   
+  #LASER addition (obsolete - as we need more flexibility)
   if(monte.carlo) {
       if(is.null(monte.carlo.cv)) monte.carlo.cv <- c("Total Body Water" = .3,
                                                       "Plasma Volume" = .3,
                                                       "Cardiac Output" = .3,
-                                                      "Average BW" = .16, 
+                                                      "Average BW" = .16,
                                                       "Total Plasma Protein" = .14,
                                                       "Plasma albumin"= .1,
                                                       "Plasma a-1-AGP"= .3,
@@ -34,10 +36,12 @@ parameterize_pbtk <- function(chem.cas = NULL,
                                                       "Bile"= .3,
                                                       "GFR"=.3,
                                                       "Average Body Temperature" = 0)
-      physiology.data <- introduce_variability(input.mean = physiology.data, 
-                                               cv = monte.carlo.cv, 
+      physiology.data <- introduce_variability(input.mean = physiology.data,
+                                               cv = monte.carlo.cv,
                                                log = monte.carlo.log)
   }
+  
+  
 # Look up the chemical name/CAS, depending on what was provide:
   out <- get_chem_id(chem.cas=chem.cas,chem.name=chem.name)
   chem.cas <- out$chem.cas
@@ -48,10 +52,10 @@ parameterize_pbtk <- function(chem.cas = NULL,
   # Clint
   # Clint has units of uL/min/10^6 cells
   Clint_kidney <- 0; Clint_gut <- 0; #if they're not provided after this line, they will simply be set to 0, and not influence results at all
-  if(!is.null(clint.enzyme.data)) { #this is now the default option for providing Clint_kidney and Clint_gut
-      Clint <- clint.enzyme.data[["Vmax"]]*clint.enzyme.data[["km"]]*clint.enzyme.data[["ISEF"]]
-      Clint_kidney <- clint.enzyme.data[["Vmax_kidney"]]*clint.enzyme.data[["km_kidney"]]*clint.enzyme.data[["ISEF_kidney"]]
-      Clint_gut <- clint.enzyme.data[["Vmax_gut"]]*clint.enzyme.data[["km_gut"]]*clint.enzyme.data[["ISEF_gut"]]
+  if(!is.null(clint.data)) { #this is now the default option for providing Clint_kidney and Clint_gut
+      Clint <- clint.data[["Vmax"]]*clint.data[["km"]]*clint.data[["ISEF"]]
+      Clint_kidney <- clint.data[["Vmax_kidney"]]*clint.data[["km_kidney"]]*clint.data[["ISEF_kidney"]]
+      Clint_gut <- clint.data[["Vmax_gut"]]*clint.data[["km_gut"]]*clint.data[["ISEF_gut"]]
   } else {
       #try to grab Vmax and km - if they're available, use them instead of Clint
       Vmax <- try(get_invitroPK_param("Vmax", species, chem.CAS=chem.cas), silent=TRUE)
@@ -73,10 +77,11 @@ parameterize_pbtk <- function(chem.cas = NULL,
           if (!is.na(Clint.pValue) & Clint.pValue > clint.pvalue.threshold) Clint <- 0
       }
   }
-  #LASER ADDITION: overriding defaults
-  if(!is.null(override.inputs))
-    if("Clint" %in% names(override.inputs))
-      Clint <- override.inputs[["Clint"]]
+  
+  # #LASER ADDITION: overriding defaults
+  # if(!is.null(override.inputs))
+  #   if("Clint" %in% names(override.inputs))
+  #     Clint <- override.inputs[["Clint"]]
     
 
   
@@ -112,6 +117,21 @@ parameterize_pbtk <- function(chem.cas = NULL,
 # Load the physiological parameters for this species
   this.phys.data <- physiology.data[,phys.species]
   names(this.phys.data) <- physiology.data[,1]
+
+# LASER addition: Override physiological parameters
+  if(!is.null(override_httk_param)) {
+    params_to_update <- names(this.phys.data)[names(this.phys.data) %in% names(override_httk_param)]
+    if(length(params_to_update) > 0) {
+      for(cpar in params_to_update) {
+        cat(paste("Overriding physio parameter:", cpar))
+        #assume there's mean and cv:
+        if(is.null(override_httk_param[[cpar]]["mean"]))
+          this.phys.data[cpar] <- lognormal_var(this.phys.data[cpar], override_httk_param[[cpar]]["cv"])
+        else
+          this.phys.data[cpar] <- lognormal_var(override_httk_param[[cpar]]["mean"], override_httk_param[[cpar]]["cv"])
+      }
+    }
+  }
   
   temp <- this.phys.data[['Average Body Temperature']] 
 # Load the physico-chemical properties:  
