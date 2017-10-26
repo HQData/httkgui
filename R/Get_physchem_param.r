@@ -5,7 +5,7 @@ get_physchem_param <- function(param,chem.name=NULL,chem.CAS=NULL)
   #LASER addition: replace mean and/or add variability to a parameter, per user specification
   if(exists("override_httk_param")) {
     if(param %in% names(override_httk_param)){
-      cat(paste("Overriding phys-chem parameter:", param))
+      # cat(paste("Overriding phys-chem parameter:", param))
       #assume there's mean and cv:
       return(lognormal_var(override_httk_param[[param]]["mean"], override_httk_param[[param]]["cv"]))
     }

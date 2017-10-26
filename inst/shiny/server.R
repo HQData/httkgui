@@ -266,7 +266,7 @@ shiny::shinyServer(function(input, output, session) {
     return(inits)
   })
   
-  #this will depend on results() object (so generate_subpopulation) as that's where inits live
+  #this will depend on results() object (so generate_population) as that's where inits live
   parameters_summary <- reactive({
     ww <- parameters()
     if(input$output_type == "single" || (input$run == 0)) {
@@ -305,6 +305,14 @@ shiny::shinyServer(function(input, output, session) {
   
   #results stored in a single reactive object: both MC and a single simulation
   results <- reactive({
+    dynamic_inputs <- list(
+      compound = input$compound, species = input$species, 
+      cas = input$cas, use.cas = input$use_cas,
+      solve.output.units = input$solve.output.units, solve.iv.dose = input$solve.iv.dose, 
+      solve.tsteps = input$solve.tsteps, solve.days = input$solve.days,
+      dose_type = input$dose_type, solve.daily.dose = input$solve.daily.dose, 
+      solve.doses = input$solve.doses.per.day, solve.dose = input$solve.dose
+    )
     if(input$output_type == "mc") { #mock eventReactive on input$run
       if(input$run == 0)
         return(NULL)
@@ -314,11 +322,15 @@ shiny::shinyServer(function(input, output, session) {
                               "Please specify at least one group in the Population Variability section"))
         return(NULL)
       }
-      
-      lapply(populations_list, function(x) do.call(generate_subpopulation, x))
-      
+      withProgress(message = "Generating results", min = 0, max = 1, {
+        lapply(populations_list, function(x) {
+          y <- do.call(generate_population, append(dynamic_inputs, x))
+          incProgress(1/length(populations_list))
+          return(y)
+        })
+      })
     } else if(input$output_type == "single") {
-      generate_subpopulation(N = 1)
+      do.call(generate_population, append(dynamic_inputs, list(N = 1)))
     }
   })
   
@@ -352,15 +364,9 @@ shiny::shinyServer(function(input, output, session) {
     lci_value <- (1-input$display_ci)/2
     uci_value <- 1 - (1-input$display_ci)/2
     res <- results()
-    withProgress(message = paste0("Calculating mean parameter values together with ", 100*input$display_ci, "% intervals"), {
-      lapply(res, function(current_subpop) {
-        tab <- do.call(rbind, current_subpop$pbtk_result)
-          tab <- tab %>% as.data.frame() %>% 
-            gather(time) %>% setNames(c("time", "variable", "value")) %>% #melt variables
-            group_by(time, variable) %>% #group to calculate values for everything
-            summarise(mean = mean(value), lci = quantile(value, lci_value), uci = quantile(value, uci_value)) %>%
-            mutate(name = current_subpop$name)
-      })
+    withProgress(
+      message = paste0("Calculating mean parameter values together with ", 100*input$display_ci, "% intervals"), {
+      lapply(res, function(x) summarise_population(x, lci_value, uci_value))
     })
   })
 
@@ -396,14 +402,14 @@ shiny::shinyServer(function(input, output, session) {
                 fvar <- T; gvar <- T }
             }
             tab <- filter(do.call(rbind, results_mc_df_v2()), variable == input$choose_plot)
-            return(auto_gg(tab, facet = fvar, grouping = gvar, varname = input$choose_plot, observed = experimental_data()))
+            return(solution_autoplot(tab, facet = fvar, grouping = gvar, varname = input$choose_plot, observed = experimental_data()))
           }
           if(input$output_type == "single") {
-            # res <- results_single()[["pbtk_result"]][[1]]
-            res <- results()[["pbtk_result"]][[1]]
+            # res <- results_single()[["result"]][[1]]
+            res <- results()[["result"]][[1]]
             cd <- which(colnames(res) == input$choose_plot)
             tab <- res[,c(1, cd)] %>% as.data.frame() %>% setNames(c("time", "mean"))
-            return(auto_gg(tab, facet = F, grouping = F, varname = input$choose_plot, observed = experimental_data()))
+            return(solution_autoplot(tab, facet = F, grouping = F, varname = input$choose_plot, observed = experimental_data()))
           }
       }
   })
@@ -430,8 +436,8 @@ shiny::shinyServer(function(input, output, session) {
           return(auto_obspred(prediction = tab, observed = obs))
         }
         if(input$output_type == "single") { 
-          # res <- results_single()[["pbtk_result"]][[1]]
-          res <- results()[["pbtk_result"]][[1]]
+          # res <- results_single()[["result"]][[1]]
+          res <- results()[["result"]][[1]]
           cd <- which(colnames(res) == input$choose_plot)
           tab <- res[,c(1, cd)] %>% as.data.frame() %>% setNames(c("time", "mean"))
           return(auto_obspred(prediction = tab, observed = experimental_data()))
@@ -559,9 +565,8 @@ shiny::shinyServer(function(input, output, session) {
                      population_variability = custom_subpopulation,
                      results = results_numerical_df(),
                      plot = filter(do.call(rbind, results_mc_df_v2()), variable == input$choose_plot) %>% 
-                       auto_gg(facet = F, grouping = T, varname = input$choose_plot)
+                       solution_autoplot(facet = F, grouping = T, varname = input$choose_plot)
       )
-      
       
       if(input$dose_type == "daily dose")
         params$dose <- paste("Single dose (mg/kg BW) of", input$solve.daily.dose)

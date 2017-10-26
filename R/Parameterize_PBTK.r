@@ -86,7 +86,6 @@ parameterize_pbtk <- function(chem.cas = NULL,
 
   
       
-  
   # unitless fraction of chemical unbound with plasma
   fub <- try(get_invitroPK_param("Funbound.plasma",species,chem.CAS=chem.cas),silent=T)
   if ((class(fub) == "try-error" & default.to.human) || force.human.clint.fub) 
@@ -123,12 +122,14 @@ parameterize_pbtk <- function(chem.cas = NULL,
     params_to_update <- names(this.phys.data)[names(this.phys.data) %in% names(override_httk_param)]
     if(length(params_to_update) > 0) {
       for(cpar in params_to_update) {
-        cat(paste("Overriding physio parameter:", cpar))
+        # cat(paste("Overriding physio parameter:", cpar))
         #assume there's mean and cv:
-        if(is.null(override_httk_param[[cpar]]["mean"]))
-          this.phys.data[cpar] <- lognormal_var(this.phys.data[cpar], override_httk_param[[cpar]]["cv"])
+        if(is.null(override_httk_param[[cpar]]["mean"]) || is.na(override_httk_param[[cpar]]["mean"]))
+          this.phys.data[cpar] <- lognormal_var(this.phys.data[cpar], 
+                                                override_httk_param[[cpar]]["cv"])
         else
-          this.phys.data[cpar] <- lognormal_var(override_httk_param[[cpar]]["mean"], override_httk_param[[cpar]]["cv"])
+          this.phys.data[cpar] <- lognormal_var(override_httk_param[[cpar]]["mean"], 
+                                                override_httk_param[[cpar]]["cv"])
       }
     }
   }
