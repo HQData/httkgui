@@ -19,6 +19,7 @@ solve_pbtk <- function(chem.name = NULL,
                     recalc.clearance=F,
                     dosing.matrix=NULL,
                     use.3cl = FALSE,
+                    prepare_only = FALSE,
                     ...)
 {
   Aart <- Agut <- Agutlumen <- Alung <- Aliver <- Aven <- Arest <- Akidney <- Cgut <- Vgut <- Cliver <- Vliver <- Cven <- Vven <- Clung <- Vlung <- Cart <- Vart <- Crest <- Vrest <- Ckidney <- Vkidney <- NULL
@@ -168,8 +169,6 @@ solve_pbtk <- function(chem.name = NULL,
                                         "Funbound.plasma",
                                         "Clmetabolismc"))]
   
-
-  
   if(use.3cl) {
     parameters <- model_scaling_3cl(parameters) #initparms_3cl is wrong
     func_name <- "derivs_3cl"
@@ -182,6 +181,15 @@ solve_pbtk <- function(chem.name = NULL,
   }
   
   state <-initState(parameters,state)
+  
+  if(prepare_only)
+    return(list(y = state, 
+                times = times,
+                func=func_name, 
+                parms=parameters, 
+                method=method,rtol=rtol,atol=atol,dllname="httk",initfunc=init_name, 
+                nout=length(Outputs),outnames=Outputs))
+  
   
   
   if(is.null(dosing.matrix)){

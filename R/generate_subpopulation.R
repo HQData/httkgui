@@ -61,6 +61,7 @@ generate_population <- function(compound, species, cas = NULL, use.cas = F,
     # b/ vary parameters after parameterization:
     if(nrow(param_to_vary_after) > 0)
       inits <- vary_inits(inits, param_to_vary_after$names, 
+                          mean = param_to_vary_after$mean,
                           cv = param_to_vary_after$cv, 
                           multiplier = param_to_vary_after$multiplier)
     
@@ -79,9 +80,9 @@ generate_population <- function(compound, species, cas = NULL, use.cas = F,
       varname <- "Ccompartment"
     times <- mclist[["result"]][[i]][,"time"]
     x <- mclist[["result"]][[i]][,varname]
-    wmax <- which.max(x)
-    wmin <- which(x < (max(x)/2))
-    mclist[["halflife"]][[i]] <- times[min(wmin[wmin > wmax])] - times[wmax]
+    
+   
+    mclist[["halflife"]][[i]] <- calculate_halflife(times, x)
     mclist[["AUC"]][[i]] <- llTrapAUC(times, x)
     mclist[["Cmax"]][[i]] <- max(x)
     
