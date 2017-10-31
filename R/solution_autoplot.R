@@ -1,5 +1,8 @@
 # visualisation functions -------------------------------------------------
-solution_autoplot <- function(ggdata, type="PBTK", nameval = "all", facet = FALSE, grouping = FALSE, varname = "Cplasma", observed = NULL) {
+solution_autoplot <- function(ggdata, type="PBTK", nameval = "all", facet = FALSE, grouping = FALSE, 
+                              varname = "Cplasma", observed = NULL) {
+  if(!is.null(ggdata$variable))
+    ggdata <- filter(ggdata, variable == varname)
   # if(!is.null(facet)) ggdata$facet <- ggdata[[facet]]
   # named <- paste0("output/", compound_name, "_", type, "_plot_", nameval, ".jpg")
   if(is.null(ggdata$name)) ggdata$name <- "All"

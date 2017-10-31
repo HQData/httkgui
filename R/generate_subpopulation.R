@@ -7,10 +7,12 @@
 
 generate_population <- function(compound, species, cas = NULL, use.cas = F,
                                 model = "pbtk",
-                                solve.output.units = 'uM', solve.iv.dose = F, solve.tsteps = 4, solve.days = 1,
-                                dose_type = "daily", solve.daily.dose = 1, solve.doses = NULL, solve.dose = NULL,
-                                param_to_override = NULL, param_to_vary_before = FALSE, 
-                                param_to_vary_after = data.frame(), N = 100, name = "") {
+                                #all the inputs passed on to model solver:
+                                output.units = 'uM', iv.dose = F, tsteps = 4, days = 1,
+                                daily.dose = 1, dose = NULL, doses.per.day = NULL,
+                                #choice of custom values and other options:
+                                param_to_override = NULL, param_to_vary_before = FALSE, param_to_vary_after = data.frame(), 
+                                N = 100, name = "") {
   # 0/ set up objects and function arguments:
   mclist <- list("inits"=list(), "result"=list(), "halflife"=list(), "AUC"=list(), "Cmax"=list())
   # list of arguments to parameterize
@@ -39,17 +41,15 @@ generate_population <- function(compound, species, cas = NULL, use.cas = F,
   # 1/ inputs for the solver:
   # (same for PBTK and 1comp cases)
   solve_list <- list(
-    chem.name=compound,
-    plots=FALSE, suppress.messages = TRUE,
-    output.units = solve.output.units, iv.dose = solve.iv.dose,
-    tsteps = solve.tsteps, days = solve.days
+    "chem.name"=compound,
+    "plots"=FALSE, "suppress.messages" = TRUE,
+    "output.units" = output.units, "iv.dose" = iv.dose,
+    "tsteps" = tsteps, "days" = days
   )
-  if(dose_type == "daily")
-    solve_list$daily.dose=solve.daily.dose
-  if(dose_type == "per day") {
-    solve_list$doses.per.day=solve.doses
-    solve_list$dose=solve.dose
-  }
+  #for dose for now no complications: same behaviour as in solve_pbtk/solve_1comp
+  solve_list$daily.dose    <- daily.dose
+  solve_list$dose          <- dose
+  solve_list$doses.per.day <- doses.per.day
   
   for(i in 1:N) {
     # a/ parameterize

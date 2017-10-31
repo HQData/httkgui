@@ -40,6 +40,8 @@
 static double parms[45];
 
 /* Parameters */
+// note that C1_CLmetabolismc is either a stupid mess or I'm just not getting something!
+// but it is kept here for compatibility purposes
 #define C1_BW parms[0]
 #define C1_CLmetabolismc parms[1]
 #define C1_hematocrit parms[2]
