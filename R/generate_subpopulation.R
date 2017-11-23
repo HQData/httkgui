@@ -1,4 +1,4 @@
-# generate subpopulation for MC simulations (for easier usage I call it generate_population)
+# generate (sub)population for MC simulations (for easier usage I call it generate_population)
 # - 'base' mean values, some of them can have CV defined
 # - for now I assume that multiplier is not defined here but before passing inits
 # - CV can be applied before or after parameterization of the model
@@ -11,7 +11,7 @@ generate_population <- function(compound, species, cas = NULL, use.cas = F,
                                 output.units = 'uM', iv.dose = F, tsteps = 4, days = 1,
                                 daily.dose = 1, dose = NULL, doses.per.day = NULL,
                                 #choice of custom values and other options:
-                                param_to_override = NULL, param_to_vary_before = FALSE, param_to_vary_after = data.frame(), 
+                                param_to_override = NULL, param_to_vary_after = data.frame(), 
                                 N = 100, name = "") {
   # 0/ set up objects and function arguments:
   mclist <- list("inits"=list(), "result"=list(), "halflife"=list(), "AUC"=list(), "Cmax"=list())
@@ -23,10 +23,8 @@ generate_population <- function(compound, species, cas = NULL, use.cas = F,
     parameterize_inputs <- append(parameterize_inputs, list(
                      "tissuelist" = list(liver=c("liver"), kidney=c("kidney"), lung=c("lung"), gut=c("gut")),
                      "force.human.clint.fub" = F, "clint.pvalue.threshold" = 0.05, 
-                     "monte.carlo" = FALSE, "override_httk_param" = param_to_override))
+                     "override_httk_param" = param_to_override))
     #this is legacy functionality, no need to go there for now!
-    if(param_to_vary_before)
-      parameterize_inputs$monte.carlo <- TRUE
   } else if(model == "1comp") {
     # nothing to add for now, 
     #in future should test custom Clint values
@@ -74,17 +72,16 @@ generate_population <- function(compound, species, cas = NULL, use.cas = F,
       mclist[["result"]][[i]] <- do.call(solve_1comp, solve_list)
     
     # d/ extra calculations (to update for AUC, halflife, Cmax of all variables?)
-    if(model == "pbtk")
-      varname <- "Cplasma"
-    if(model == "1comp")
-      varname <- "Ccompartment"
-    times <- mclist[["result"]][[i]][,"time"]
-    x <- mclist[["result"]][[i]][,varname]
-    
-   
-    mclist[["halflife"]][[i]] <- calculate_halflife(times, x)
-    mclist[["AUC"]][[i]] <- llTrapAUC(times, x)
-    mclist[["Cmax"]][[i]] <- max(x)
+    # now in summarise_statistics
+    # if(model == "pbtk")
+    #   varname <- "Cplasma"
+    # if(model == "1comp")
+    #   varname <- "Ccompartment"
+    # times <- mclist[["result"]][[i]][,"time"]
+    # x <- mclist[["result"]][[i]][,varname]
+    # mclist[["halflife"]][[i]] <- calculate_halflife(times, x)
+    # mclist[["AUC"]][[i]] <- llTrapAUC(times, x)
+    # mclist[["Cmax"]][[i]] <- max(x)
     
     # if(shiny)
       # shiny::incProgress(1/N)
@@ -92,3 +89,5 @@ generate_population <- function(compound, species, cas = NULL, use.cas = F,
   mclist[["name"]] <- name
   mclist
 }
+
+
