@@ -96,15 +96,14 @@ shiny::shinyServer(function(input, output, session) {
       param_to_override = list(
         # "Average BW" = c("mean" = 75, "cv" = 0) 
       ),
-      param_to_vary_before = FALSE,
       param_to_vary_after = data.frame(
         "names" = c("Clmetabolismc", "CLmetabolism_gut", "CLmetabolism_kidney"),
         "cv" = input$population_new_cv,
         "multiplier" = input$population_new_multiplier), 
       N = input$population_new_N,
       "name"=input$population_new_name)
-    if(input$population_new_vartype == "tk_physbio")
-      newlist$param_to_vary_before <- TRUE
+    # if(input$population_new_vartype == "tk_physbio")
+      # newlist$param_to_vary_before <- TRUE
     
     populations_list[[length(populations_list) + 1]] <<- newlist
     
@@ -306,13 +305,19 @@ shiny::shinyServer(function(input, output, session) {
   #results stored in a single reactive object: both MC and a single simulation
   results <- reactive({
     dynamic_inputs <- list(
-      compound = input$compound, species = input$species, 
-      cas = input$cas, use.cas = input$use_cas,
-      solve.output.units = input$solve.output.units, solve.iv.dose = input$solve.iv.dose, 
-      solve.tsteps = input$solve.tsteps, solve.days = input$solve.days,
-      dose_type = input$dose_type, solve.daily.dose = input$solve.daily.dose, 
-      solve.doses = input$solve.doses.per.day, solve.dose = input$solve.dose
+      compound     = input$compound,            species    = input$species, 
+      cas          = input$cas,                 use.cas    = input$use_cas,
+      output.units = input$solve.output.units,  iv.dose    = input$solve.iv.dose, 
+      tsteps       = input$solve.tsteps,        days       = input$solve.days
     )
+    if(input$dose_type == "daily dose"){
+      dynamic_inputs$daily.dose = input$solve.daily.dose
+    }
+    if(input$dose_type == "per dose + doses/day"){
+      dynamic_inputs$dose = input$solve.dose
+      dynamic_inputs$doses.per.day = input$solve.doses.per.day
+    }
+    
     if(input$output_type == "mc") { #mock eventReactive on input$run
       if(input$run == 0)
         return(NULL)
@@ -433,14 +438,14 @@ shiny::shinyServer(function(input, output, session) {
           obs <- filter(experimental_data(), variable == input$choose_plot)
           if(nrow(obs) == 0)
             return(NULL)
-          return(auto_obspred(prediction = tab, observed = obs))
+          return(plot_obspred(prediction = tab, observed = obs))
         }
         if(input$output_type == "single") { 
           # res <- results_single()[["result"]][[1]]
           res <- results()[["result"]][[1]]
           cd <- which(colnames(res) == input$choose_plot)
           tab <- res[,c(1, cd)] %>% as.data.frame() %>% setNames(c("time", "mean"))
-          return(auto_obspred(prediction = tab, observed = experimental_data()))
+          return(plot_obspred(prediction = tab, observed = experimental_data()))
         }
       }
     }
@@ -458,54 +463,31 @@ shiny::shinyServer(function(input, output, session) {
   
   results_numerical_df <- reactive({
     if(input$output_type == "mc") {
-      tab <- do.call(rbind, lapply(results(), function(cpop) {
-        lci <- (1-input$display_ci)/2
-        uci <- 1 - (1-input$display_ci)/2
-        
-        df <- apply(data.frame(unlist(cpop[["halflife"]]), 
-                               unlist(cpop[["AUC"]]), 
-                               unlist(cpop[["Cmax"]])), 
-                    2, function(x) {
-                      c("lci"=quantile(x,lci, na.rm=T), "mean"=mean(x, na.rm=T), "uci"=quantile(x,uci, na.rm=T)) 
-                    })    
-        # browser()
-        rownames(df) <- c(paste0(100*lci, "%"), "mean", paste0(100*uci, "%"))
-        colnames(df) <- c("Half-life (Cplasma)", "AUC (Cplasma)", "Cmax (Cplasma)")
-        df <- as.data.frame(t(df))
-        if(length(custom_subpopulation) > 1)
-          df[["model"]] <- cpop[["name"]]
-        
-        return(df)
-      }))
+      if(input$output_type == "single")
+        varname <- "Ccompartment"
+      if(input$output_type == "mc")
+        varname <- "Cplasma"
       
-      return(tab)
+      return(bind_rows(lapply(results(), function(x) {
+        tt <- summarise_parameters(x, variable = varname, conf.int = input$display_ci)
+        tt$parameter <- rownames(tt)
+        tt[,c(5, 4, 1, 2, 3)]
+      })))
       
     }
     if(input$output_type == "single") {
       # if(!is.null(results_single())) {
       if(!is.null(results())) {
-        # times <- results_single()[,"time"]
-        # x <- results_single()[,"Cplasma"]
-        # wmax <- which.max(x)
-        # wmin <- which(x < (max(x)/2))
-        # tt <- times[min(wmin[wmin > wmax])] - times[wmax]
-        # return(data.frame("Cplasma half-life" = tt,
-        #                   "Cplasma Cmax" = max(x),
-        #                   "Cplasma AUC" = llTrapAUC(times, x)))
-        # return(data.frame("Cplasma half-life" = results_single()[["halflife"]][[1]],
-        #                   "Cplasma Cmax" = results_single()[["Cmax"]][[1]],
-        #                   "Cplasma AUC" = results_single()[["AUC"]][[1]]))
         return(data.frame("Cplasma half-life" = results()[["halflife"]][[1]],
                           "Cplasma Cmax" = results()[["Cmax"]][[1]],
                           "Cplasma AUC" = results()[["AUC"]][[1]]))
-        
       }
     }
   })
   
   output$results_numerical <- renderTable({
     results_numerical_df()
-  }, rownames = TRUE, digits = 3)
+  }, rownames = F, digits = 3)
 
   
 # reporting -----
