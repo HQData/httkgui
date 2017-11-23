@@ -134,7 +134,7 @@ void derivs_3cl (int *neq, double *pdTime, double *y, double *ydot, double *yout
     ametabolised_gut = (C1_Vmax_gut * y[C1_ID_Agut] / C1_Vgut / C1_Kgut2plasma) / 
       (C1_Km_gut + y[C1_ID_Agut] / C1_Vgut / C1_Kgut2plasma);
   else
-    ametabolised_gut    = (C1_CLmetabolism_gut    * y[C1_ID_Agut] / C1_Vgut / C1_Kgut2plasma);
+    ametabolised_gut = (C1_CLmetabolism_gut    * y[C1_ID_Agut] / C1_Vgut / C1_Kgut2plasma);
   
   /* Agut flow: modified by subtracting term gut-specific metabolism */
   ydot[C1_ID_Agut] = C1_kgutabs * y[C1_ID_Agutlumen] + C1_Qgut * ( y[C1_ID_Aart] / C1_Vart - y[C1_ID_Agut] / C1_Vgut * C1_Ratioblood2plasma / C1_Kgut2plasma / C1_Fraction_unbound_plasma );

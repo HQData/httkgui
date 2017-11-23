@@ -105,6 +105,7 @@ initparms_3cl <- function(newParms = NULL){
   )
   if (!is.null(newParms)) {
     if (!all(names(newParms) %in% c(names(parms)))) {
+      browser()
       stop("illegal parameter name")
     }
   }
@@ -178,6 +179,9 @@ model_scaling_3cl <- function(newParms = NULL) {
     CLmetabolism = CLmetabolismc * 24 * BW ;
     CLmetabolism_gut = CLmetabolism_gut * 24 * BW ;
     CLmetabolism_kidney = CLmetabolism_kidney * 24 * BW ;
+    Vmax = Vmax * 24 * BW ;
+    Vmax_gut = Vmax_gut * 24 * BW ;
+    Vmax_kidney = Vmax_kidney * 24 * BW ;
     Qcardiac = Qcardiacc * 24 * BW^0.75 ;
     Qgfr = Qgfrc * BW^0.75 * 24 ;
     Qgut = Qcardiac * Qgutf ;

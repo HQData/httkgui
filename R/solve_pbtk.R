@@ -169,7 +169,9 @@ solve_pbtk <- function(chem.name = NULL,
                                         "Funbound.plasma",
                                         "Clmetabolismc"))]
   
-  if(use.3cl) {
+  # browser()
+  cl3_params <- c("Vmax", "km", "Vmax_kidney", "km_kidney", "Vmax_gut", "km_gut")
+  if(all(cl3_params %in% names(parameters))) {
     parameters <- model_scaling_3cl(parameters) #initparms_3cl is wrong
     func_name <- "derivs_3cl"
     init_name <- "initmod_3cl"
