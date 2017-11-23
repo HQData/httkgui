@@ -1,15 +1,16 @@
 # This function retrives physico-chemical properties ("param") for the chemical specified by chem.name or chem.CAS from the vLiver tables.
 get_physchem_param <- function(param,chem.name=NULL,chem.CAS=NULL)
 {
-  
   #LASER addition: replace mean and/or add variability to a parameter, per user specification
-  if(exists("override_httk_param")) {
+  if(exists("override_httk_param", parent.frame())) {
+    override_httk_param <- get("override_httk_param", parent.frame())
     if(param %in% names(override_httk_param)){
       # cat(paste("Overriding phys-chem parameter:", param))
       #assume there's mean and cv:
       return(lognormal_var(override_httk_param[[param]]["mean"], override_httk_param[[param]]["cv"]))
     }
   }
+  #End LASER addition.
   
   Wetmore.data <- Wetmore.data
   chem.physical_and_invitro.data <- chem.physical_and_invitro.data

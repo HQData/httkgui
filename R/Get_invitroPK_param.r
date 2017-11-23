@@ -4,7 +4,8 @@ get_invitroPK_param <- function(param,species,chem.name=NULL,chem.CAS=NULL)
   chem.physical_and_invitro.data <- chem.physical_and_invitro.data
   
   #LASER addition: replace mean and/or add variability to a parameter, per user specification
-  if(exists("override_httk_param")) {
+  if(exists("override_httk_param", parent.frame())) {
+    override_httk_param <- get("override_httk_param", parent.frame())
     if(param %in% names(override_httk_param)){
       # cat(paste("Overriding PK parameter:", param))
       #assume there's mean and cv:
