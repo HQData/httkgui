@@ -1,14 +1,17 @@
 solve_mixtures <- function(parametersA, parametersB, parametersint,
                            method="lsoda",rtol=1e-8,atol=1e-12, 
                            use.amounts = F,
+                           daily.dose = c(1, 1), dose = NULL, doses.per.day = NULL,
                            ...) {
   if (use.amounts)
     CompartmentsToInitialize <-c("Agutlumen","Aart","Aven","Alung","Agut","Aliver","Akidney","Arest")
   else
     CompartmentsToInitialize <-c("Agutlumen","Cart","Cven","Clung","Cgut","Cliver","Ckidney","Crest")
   
-  inputA <- solve_pbtk(parameters = parametersA, prepare_only = TRUE, ...)
-  inputB <- solve_pbtk(parameters = parametersB, prepare_only = TRUE, ...)
+  inputA <- solve_pbtk(parameters = parametersA, prepare_only = TRUE, 
+                       daily.dose = daily.dose[1], dose = dose[1], doses.per.day = doses.per.day[1], ...)
+  inputB <- solve_pbtk(parameters = parametersB, prepare_only = TRUE, 
+                       daily.dose = daily.dose[2], dose = dose[2], doses.per.day = doses.per.day[2], ...)
   names(inputA$y) <- paste0("C1_", names(inputA$y))
   names(inputB$y) <- paste0("C2_", names(inputB$y))
   Outputs <- c("Cgut", "Cliver", "Cven", "Clung", "Cart", "Crest", "Ckidney", "Cserum", "Aserum")

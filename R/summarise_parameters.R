@@ -1,6 +1,6 @@
 #summarise_parameters
 
-summarise_parameters <- function(cpop, variable, conf.int = .95) {
+summarise_parameters <- function(cpop, variable, conf.int = .95, result = "result") {
   if(any(class(cpop) == "matrix"))
     cpop <- list("result" = list(cpop))
   
@@ -8,7 +8,7 @@ summarise_parameters <- function(cpop, variable, conf.int = .95) {
   
   lci <- (1 - conf.int)/2
   uci <- 1 - (1 - conf.int)/2
-  ll <- lapply(cpop$result, function(cres) {
+  ll <- lapply(cpop[[result]], function(cres) {
     times <- cres[, "time"]
     x     <- cres[, variable]
     hf    <- calculate_halflife(times, x)
