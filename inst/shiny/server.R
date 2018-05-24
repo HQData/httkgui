@@ -8,38 +8,38 @@ shiny::shinyServer(function(input, output, session) {
   source("plot_functions.R", local = TRUE)
   source("calculate_functions.R", local = TRUE)
   parameter_names <- c(
-      "BW" = "Body Weight, kg.",
-      "Clmetabolismc" = "Hepatic Clearance, L/h/kg BW.",
-      "Fgutabs" = "Fraction of the oral dose absorbed, i.e. the fraction of the dose that enters the gutlumen.",
-      "Funbound.plasma" = "Fraction of plasma that is not bound.",
-      "Fhep.assay.correction" = "The fraction of chemical unbound in hepatocyte assay using the method of Kilford et al. (2008)",
-      "hematocrit" = "Percent volume of red blood cells in the blood.",
-      "kdermabs" = "Rate that chemical is transferred from the skin to the blood, 1/h.",
-      "Kgut2pu" = "Ratio of concentration of chemical in gut tissue to unbound concentration in plasma.",
-      "kgutabs" = "Rate that chemical enters the gut from gutlumen, 1/h.",
-      "kinhabs" = "Rate that the chemical is transferred from the lungs to the blood, 1/h.",
-      "Kkidney2pu" = "Ratio of concentration of chemical in kidney tissue to unbound concentration in plasma.",
-      "Kliver2pu" = "Ratio of concentration of chemical in liver tissue to unbound concentration in plasma.",
-      "Klung2pu" = "Ratio of concentration of chemical in lung tissue to unbound concentration in plasma.",
-      "Krbc2pu" = "Ratio of concentration of chemical in red blood cells to unbound concentration in plasma.",
-      "Krest2pu" = "Ratio of concentration of chemical in rest of body tissue to unbound concentration in plasma.",
-      "million.cells.per.gliver" = "Millions cells per gram of liver tissue.",
-      "MW" = "Molecular Weight, g/mol.",
-      "Qcardiacc" = "Cardiac Output, L/h/kg BW^3/4.",
-      "Qgfrc" = "Glomerular Filtration Rate, L/h/kg BW^3/4, volume of fluid filtered from kidney and excreted.",
-      "Qgutf" = "Fraction of cardiac output flowing to the gut.",
-      "Qkidneyf" = "Fraction of cardiac output flowing to the kidneys.",
-      "Qliverf" = "Fraction of cardiac output flowing to the liver.",
-      "Rblood2plasma" = "The ratio of the concentration of the chemical in the blood to the concentration in the plasma.",
-      "Vartc" = "Volume of the arteries per kg body weight, L/kg BW.",
-      "Vgutc" = "Volume of the gut per kg body weight, L/kg BW.",
-      "Vkidneyc" = "Volume of the kidneys per kg body weight, L/kg BW.",
-      "Vliverc" = "Volume of the liver per kg body weight, L/kg BW.",
-      "Vlungc" = "Volume of the lungs per kg body weight, L/kg BW.",
-      "Vrestc" = "Volume of the rest of the body per kg body weight, L/kg BW.",
-      "Vvenc" = "Volume of the veins per kg body weight, L/kg BW.",
-      "Vmax" = "Maximal velocity, []",
-      "km" = "Michaelis constant"
+    "BW" = "Body Weight, kg.",
+    "Clmetabolismc" = "Hepatic Clearance, L/h/kg BW.",
+    "Fgutabs" = "Fraction of the oral dose absorbed, i.e. the fraction of the dose that enters the gutlumen.",
+    "Funbound.plasma" = "Fraction of plasma that is not bound.",
+    "Fhep.assay.correction" = "The fraction of chemical unbound in hepatocyte assay using the method of Kilford et al. (2008)",
+    "hematocrit" = "Percent volume of red blood cells in the blood.",
+    "kdermabs" = "Rate that chemical is transferred from the skin to the blood, 1/h.",
+    "Kgut2pu" = "Ratio of concentration of chemical in gut tissue to unbound concentration in plasma.",
+    "kgutabs" = "Rate that chemical enters the gut from gutlumen, 1/h.",
+    "kinhabs" = "Rate that the chemical is transferred from the lungs to the blood, 1/h.",
+    "Kkidney2pu" = "Ratio of concentration of chemical in kidney tissue to unbound concentration in plasma.",
+    "Kliver2pu" = "Ratio of concentration of chemical in liver tissue to unbound concentration in plasma.",
+    "Klung2pu" = "Ratio of concentration of chemical in lung tissue to unbound concentration in plasma.",
+    "Krbc2pu" = "Ratio of concentration of chemical in red blood cells to unbound concentration in plasma.",
+    "Krest2pu" = "Ratio of concentration of chemical in rest of body tissue to unbound concentration in plasma.",
+    "million.cells.per.gliver" = "Millions cells per gram of liver tissue.",
+    "MW" = "Molecular Weight, g/mol.",
+    "Qcardiacc" = "Cardiac Output, L/h/kg BW^3/4.",
+    "Qgfrc" = "Glomerular Filtration Rate, L/h/kg BW^3/4, volume of fluid filtered from kidney and excreted.",
+    "Qgutf" = "Fraction of cardiac output flowing to the gut.",
+    "Qkidneyf" = "Fraction of cardiac output flowing to the kidneys.",
+    "Qliverf" = "Fraction of cardiac output flowing to the liver.",
+    "Rblood2plasma" = "The ratio of the concentration of the chemical in the blood to the concentration in the plasma.",
+    "Vartc" = "Volume of the arteries per kg body weight, L/kg BW.",
+    "Vgutc" = "Volume of the gut per kg body weight, L/kg BW.",
+    "Vkidneyc" = "Volume of the kidneys per kg body weight, L/kg BW.",
+    "Vliverc" = "Volume of the liver per kg body weight, L/kg BW.",
+    "Vlungc" = "Volume of the lungs per kg body weight, L/kg BW.",
+    "Vrestc" = "Volume of the rest of the body per kg body weight, L/kg BW.",
+    "Vvenc" = "Volume of the veins per kg body weight, L/kg BW.",
+    "Vmax" = "Maximal velocity, []",
+    "km" = "Michaelis constant"
   )
   
   additional_parameters <- c(
@@ -52,9 +52,9 @@ shiny::shinyServer(function(input, output, session) {
   
   
   observeEvent(input$use_add, {
-      updateTabsetPanel(session, "main_panel",
-                        selected = ifelse(input$use_add == 1, "add compound", "inputs summary")
-      )
+    updateTabsetPanel(session, "main_panel",
+                      selected = ifelse(input$use_add == 1, "add compound", "inputs summary")
+    )
   })
   
   # compound information (define population) --------------------------------
@@ -83,11 +83,11 @@ shiny::shinyServer(function(input, output, session) {
     
     #update the table that the user sees
     custom_subpopulation_newdata <- data.frame(
-                          "name"=input$population_new_name, 
-                          "N"=input$population_new_N, 
-                          "type"=input$population_new_vartype, 
-                          "multiplier"=input$population_new_multiplier, 
-                          "CV"=input$population_new_cv)
+      "name"=input$population_new_name, 
+      "N"=input$population_new_N, 
+      "type"=input$population_new_vartype, 
+      "multiplier"=input$population_new_multiplier, 
+      "CV"=input$population_new_cv)
     custom_subpopulation <<- rbind(custom_subpopulation, custom_subpopulation_newdata)
     
     #update the list that guides the simulations
@@ -103,7 +103,7 @@ shiny::shinyServer(function(input, output, session) {
       N = input$population_new_N,
       "name"=input$population_new_name)
     # if(input$population_new_vartype == "tk_physbio")
-      # newlist$param_to_vary_before <- TRUE
+    # newlist$param_to_vary_before <- TRUE
     
     populations_list[[length(populations_list) + 1]] <<- newlist
     
@@ -133,81 +133,81 @@ shiny::shinyServer(function(input, output, session) {
   # model parameters  ---------
   
   observeEvent(input$add_submit, {
-      if(input$use_add) {
-            # browser()
-        my.new.data <- data.frame(
-            'Compound' = input$add_compound, 
-            'CAS' = input$add_cas, 
-            'MW' = input$add_mw, 
-            'logp'= input$add_logp, 
-            'funbound' = input$add_funbound, 
-            'fgutabs' = input$add_fgutabs, 
-            'clint' = input$add_clint,
-            'KTS' = input$add_kts, 
-            'FR' = input$add_fr, 
-            'vmax' = input$add_vmax, 
-            'km' = input$add_km, 
-            'pKa_donor' = input$add_pka_donor, 
-            'pKa_accept' = input$add_pka_accept)
-        
-        nna.list <- as.list(na.omit(c(
-            'Compound' = 'Compound',
-            'CAS' = "CAS",
-            'MW' = ifelse(!input$add_mw_na, "MW", NA),
-            'logP' = ifelse(!input$add_logp_na, "logp", NA),
-            'Funbound.plasma' = ifelse(!input$add_funbound_na, "funbound", NA),
-            'Fgutabs' = ifelse(!input$add_fgutabs_na, "fgutabs", NA),
-            'Clint' = ifelse(!input$add_clint_na, "clint", NA),
-            'KTS' = ifelse(!input$add_kts_na, "KTS", NA),
-            'FR' = ifelse(!input$add_fr_na, "FR", NA),
-            'Vmax' = ifelse(!input$add_vmax_na, "vmax", NA),
-            'km' = ifelse(!input$add_km_na, "km", NA),
-            'pKa_Donor' = ifelse(!input$add_pka_donor_na, "pKa_donor", NA),
-            'pKa_Accept' = ifelse(!input$add_pka_accept_na, "pKa_accept", NA)
-            )))
-       
-        # 'logMA', 'Clint', 'Clint.pValue', 'Funbound.plasma', 'Fgutabs'
-        chem.physical_and_invitro.data_new <<- add_chemtable(my.new.data,
-                      current.table=chem.physical_and_invitro.data,
-                      data.list=nna.list,
-                      species=input$species,
-                      reference=input$add_reference, overwrite = TRUE)
-      } else {
-          
-      }
+    if(input$use_add) {
+      # browser()
+      my.new.data <- data.frame(
+        'Compound' = input$add_compound, 
+        'CAS' = input$add_cas, 
+        'MW' = input$add_mw, 
+        'logp'= input$add_logp, 
+        'funbound' = input$add_funbound, 
+        'fgutabs' = input$add_fgutabs, 
+        'clint' = input$add_clint,
+        'KTS' = input$add_kts, 
+        'FR' = input$add_fr, 
+        'vmax' = input$add_vmax, 
+        'km' = input$add_km, 
+        'pKa_donor' = input$add_pka_donor, 
+        'pKa_accept' = input$add_pka_accept)
       
+      nna.list <- as.list(na.omit(c(
+        'Compound' = 'Compound',
+        'CAS' = "CAS",
+        'MW' = ifelse(!input$add_mw_na, "MW", NA),
+        'logP' = ifelse(!input$add_logp_na, "logp", NA),
+        'Funbound.plasma' = ifelse(!input$add_funbound_na, "funbound", NA),
+        'Fgutabs' = ifelse(!input$add_fgutabs_na, "fgutabs", NA),
+        'Clint' = ifelse(!input$add_clint_na, "clint", NA),
+        'KTS' = ifelse(!input$add_kts_na, "KTS", NA),
+        'FR' = ifelse(!input$add_fr_na, "FR", NA),
+        'Vmax' = ifelse(!input$add_vmax_na, "vmax", NA),
+        'km' = ifelse(!input$add_km_na, "km", NA),
+        'pKa_Donor' = ifelse(!input$add_pka_donor_na, "pKa_donor", NA),
+        'pKa_Accept' = ifelse(!input$add_pka_accept_na, "pKa_accept", NA)
+      )))
+      
+      # 'logMA', 'Clint', 'Clint.pValue', 'Funbound.plasma', 'Fgutabs'
+      chem.physical_and_invitro.data_new <<- add_chemtable(my.new.data,
+                                                           current.table=chem.physical_and_invitro.data,
+                                                           data.list=nna.list,
+                                                           species=input$species,
+                                                           reference=input$add_reference, overwrite = TRUE)
+    } else {
+      
+    }
+    
   })
   
   observeEvent(input$custom_params, {
     if(!input$custom_params && exists("custom_param_values"))
-        # browser()
-        rm(custom_param_values, envir=.GlobalEnv)
+      # browser()
+      rm(custom_param_values, envir=.GlobalEnv)
   })
   observeEvent(input$cparams_submit, {
-          #add a row:
-          newdata <- data.frame("parameter"=input$cparams_select, 
-                                "description"=c(parameter_names, additional_parameters)[input$cparams_select], 
-                                "value"=input$cparams_value, 
-                                "mc.cv"=input$cparams_cv)
-          # browser
-          if(exists("custom_param_values")) {
-              #remove the last existing value if it was in there
-              custom_param_values <<- 
-                custom_param_values[custom_param_values$parameter != input$cparams_select,]
-              custom_param_values <<- rbind(custom_param_values, newdata)
-          } else {
-              custom_param_values <<- newdata
-          }
-      
-      #clean the inputs
-      updateNumericInput(session, "cparams_value", value = 0)
+    #add a row:
+    newdata <- data.frame("parameter"=input$cparams_select, 
+                          "description"=c(parameter_names, additional_parameters)[input$cparams_select], 
+                          "value"=input$cparams_value, 
+                          "mc.cv"=input$cparams_cv)
+    # browser
+    if(exists("custom_param_values")) {
+      #remove the last existing value if it was in there
+      custom_param_values <<- 
+        custom_param_values[custom_param_values$parameter != input$cparams_select,]
+      custom_param_values <<- rbind(custom_param_values, newdata)
+    } else {
+      custom_param_values <<- newdata
+    }
+    
+    #clean the inputs
+    updateNumericInput(session, "cparams_value", value = 0)
   })
   # custom_param_values <- data.frame("parameter"=c(), "description"=c(), "value"=c(), 
-                                    # "MC 2.5%"=c(), "MC mean"=c(), "MC 97.5%"=c())
+  # "MC 2.5%"=c(), "MC mean"=c(), "MC 97.5%"=c())
   output$custom_param_table <- renderDataTable({
-      input$cparams_submit
-      if(exists("custom_param_values"))
-          return(custom_param_values)
+    input$cparams_submit
+    if(exists("custom_param_values"))
+      return(custom_param_values)
   })
   
   mc_cv <- reactive(c(`Total Body Water` = input$cv.water,
@@ -222,25 +222,26 @@ shiny::shinyServer(function(input, output, session) {
                       Bile = input$cv.bile,
                       GFR = input$cv.gfr,
                       `Average Body Temperature` = input$cv.abt
-                      ))
+  ))
   
   #this returns one set of parameters
   parameters <- reactive({
     param_list <- list("chem.cas"=NULL,"chem.name" = input$compound, "species" = input$species, 
                        "default.to.human" = F,
                        "tissuelist" = list(liver=c("liver"), kidney=c("kidney"), lung=c("lung"), gut=c("gut")),
-                       "force.human.clint.fub" = F, "clint.pvalue.threshold" = 0.05, monte.carlo=FALSE
-                       )
+                       "force.human.clint.fub" = F, "clint.pvalue.threshold" = 0.05 
+                       # monte.carlo=FALSE
+    )
     if(input$use_cas) {
-        param_list$chem.cas <- input$cas
-        param_list$chem.name <- NULL
+      param_list$chem.cas <- input$cas
+      param_list$chem.name <- NULL
     }
     if(input$use_add && input$add_submit) {
-        chem.physical_and_invitro.data <<- chem.physical_and_invitro.data_new
-        param_list$chem.name <- paste(toupper(substr(input$add_compound, 1, 1)), 
-                                      substr(input$add_compound, 2, nchar(input$add_compound)), sep="")
+      chem.physical_and_invitro.data <<- chem.physical_and_invitro.data_new
+      param_list$chem.name <- paste(toupper(substr(input$add_compound, 1, 1)), 
+                                    substr(input$add_compound, 2, nchar(input$add_compound)), sep="")
     }
-        
+    
     input$cparams_submit
     
     inits <- do.call(parameterize_pbtk, param_list)
@@ -257,7 +258,7 @@ shiny::shinyServer(function(input, output, session) {
         param_list$override.input <- torep
         inits <- do.call(parameterize_pbtk, param_list) #overwrite previous calc
       }
-        
+      
       torep <- custom_param_values$value[which_are_inits]
       names(torep) <- custom_param_values$parameter[which_are_inits]
       inits[names(torep)] <- torep
@@ -340,12 +341,12 @@ shiny::shinyServer(function(input, output, session) {
   })
   
   endpoints <- reactive({
-      # ww <- c("Cplasma", paste0("C", input$compartments), "Crest", "Ametabolized", "Atubules", "Agutlumen")
-      ww <- c("Cplasma", paste0("C", c("lung", "kidney", "gut", "liver")), "Crest", "Ametabolized", "Atubules", "Agutlumen")
-      names(ww) <- ww
-      # names(ww) <- c("Plasma", input$compartments, "rest", "metabolized", "tubules", "gut lumen")
-      # names(ww) <- c("Plasma", c("lung", "kidney", "gut", "liver"), "rest", "metabolized", "tubules", "gut lumen")
-      return(ww)
+    # ww <- c("Cplasma", paste0("C", input$compartments), "Crest", "Ametabolized", "Atubules", "Agutlumen")
+    ww <- c("Cplasma", paste0("C", c("lung", "kidney", "gut", "liver")), "Crest", "Ametabolized", "Atubules", "Agutlumen")
+    names(ww) <- ww
+    # names(ww) <- c("Plasma", input$compartments, "rest", "metabolized", "tubules", "gut lumen")
+    # names(ww) <- c("Plasma", c("lung", "kidney", "gut", "liver"), "rest", "metabolized", "tubules", "gut lumen")
+    return(ww)
   })
   
   experimental_data <- reactive({
@@ -365,20 +366,20 @@ shiny::shinyServer(function(input, output, session) {
       return(NULL)
     if(is.null(results()))
       return(NULL)
-      
+    
     lci_value <- (1-input$display_ci)/2
     uci_value <- 1 - (1-input$display_ci)/2
     res <- results()
     withProgress(
       message = paste0("Calculating mean parameter values together with ", 100*input$display_ci, "% intervals"), {
-      lapply(res, function(x) summarise_population(x, lci_value, uci_value))
-    })
+        lapply(res, function(x) summarise_population(x, lci_value, uci_value))
+      })
   })
-
+  
   # presentation of results -------------------------------------------------
   
   output$choose_plot_ui <- renderUI({
-      selectInput("choose_plot", "Choose parameter to plot", endpoints())
+    selectInput("choose_plot", "Choose parameter to plot", endpoints())
   })
   
   output$choose_plot_type_ui <- renderUI({
@@ -391,32 +392,32 @@ shiny::shinyServer(function(input, output, session) {
   })
   
   output$results_plot_single <- renderPlot({
-      if(!is.null(input$choose_plot)) {
-          if(input$output_type == "mc") {
-            if(is.null(results_mc_df_v2()) || is.null(input$choose_plot))
-              return(NULL)
-            
-            #display options:
-            fvar <- F; gvar <- F
-            if(!is.null(input$choose_plot_type)) {
-              if(input$choose_plot_type == "group")
-                gvar <- T
-              if(input$choose_plot_type == "facet")
-                fvar <- T
-              if(input$choose_plot_type == "both") {
-                fvar <- T; gvar <- T }
-            }
-            tab <- filter(do.call(rbind, results_mc_df_v2()), variable == input$choose_plot)
-            return(solution_autoplot(tab, facet = fvar, grouping = gvar, varname = input$choose_plot, observed = experimental_data()))
-          }
-          if(input$output_type == "single") {
-            # res <- results_single()[["result"]][[1]]
-            res <- results()[["result"]][[1]]
-            cd <- which(colnames(res) == input$choose_plot)
-            tab <- res[,c(1, cd)] %>% as.data.frame() %>% setNames(c("time", "mean"))
-            return(solution_autoplot(tab, facet = F, grouping = F, varname = input$choose_plot, observed = experimental_data()))
-          }
+    if(!is.null(input$choose_plot)) {
+      if(input$output_type == "mc") {
+        if(is.null(results_mc_df_v2()) || is.null(input$choose_plot))
+          return(NULL)
+        
+        #display options:
+        fvar <- F; gvar <- F
+        if(!is.null(input$choose_plot_type)) {
+          if(input$choose_plot_type == "group")
+            gvar <- T
+          if(input$choose_plot_type == "facet")
+            fvar <- T
+          if(input$choose_plot_type == "both") {
+            fvar <- T; gvar <- T }
+        }
+        tab <- filter(do.call(rbind, results_mc_df_v2()), variable == input$choose_plot)
+        return(solution_autoplot(tab, facet = fvar, grouping = gvar, varname = input$choose_plot, observed = experimental_data()))
       }
+      if(input$output_type == "single") {
+        # res <- results_single()[["result"]][[1]]
+        res <- results()[["result"]][[1]]
+        cd <- which(colnames(res) == input$choose_plot)
+        tab <- res[,c(1, cd)] %>% as.data.frame() %>% setNames(c("time", "mean"))
+        return(solution_autoplot(tab, facet = F, grouping = F, varname = input$choose_plot, observed = experimental_data()))
+      }
+    }
   })
   
   output$validation_results <- renderUI({
@@ -450,14 +451,14 @@ shiny::shinyServer(function(input, output, session) {
       }
     }
   })
-
-# left panel observers ----------------------------------------------------
-
+  
+  # left panel observers ----------------------------------------------------
+  
   output$results_plot_ui <- renderUI({
-      if(input$output_type == "mc")
-          plotOutput("results_plot")
-      if(input$output_type == "single")
-          plotOutput("results_plot", height=200, width= 600)
+    if(input$output_type == "mc")
+      plotOutput("results_plot")
+    if(input$output_type == "single")
+      plotOutput("results_plot", height=200, width= 600)
   })
   
   
@@ -488,25 +489,25 @@ shiny::shinyServer(function(input, output, session) {
   output$results_numerical <- renderTable({
     results_numerical_df()
   }, rownames = F, digits = 3)
-
   
-# reporting -----
+  
+  # reporting -----
   
   output$fileDownload <- downloadHandler(
-      filename = function() {
-          paste("data-", Sys.Date(), ".csv", sep="")
-      },
-      content = function(file) {
-          if(input$output_type == "single")
-              # data <- results_single()
-              data <- results()
-          if(input$output_type == "mc")
-              data <- results_mc_df()["mean",,]
-          # browser()
-          write.csv(data, 
-                    file)
-      },
-      contentType='text/csv'
+    filename = function() {
+      paste("data-", Sys.Date(), ".csv", sep="")
+    },
+    content = function(file) {
+      if(input$output_type == "single")
+        # data <- results_single()
+        data <- results()
+      if(input$output_type == "mc")
+        data <- results_mc_df()["mean",,]
+      # browser()
+      write.csv(data, 
+                file)
+    },
+    contentType='text/csv'
   )
   
   output$report <- downloadHandler(
@@ -530,7 +531,7 @@ shiny::shinyServer(function(input, output, session) {
       # if(input$report_format == "docx"){
       #   tempReport <- file.path(tempdir(), "tkplate_report_docx.Rmd")
       #   file.copy("tkplate_report_docx.Rmd", tempReport, overwrite = TRUE)}
-        
+      
       
       src <- normalizePath('tkplate_report.Rmd')
       # temporarily switch to the temp dir, in case you do not have write
@@ -563,14 +564,14 @@ shiny::shinyServer(function(input, output, session) {
       #                   envir = new.env(parent = globalenv())
       # )
       out <- rmarkdown::render('tkplate_report.Rmd', output_file = file, params = params, envir = new.env(parent = globalenv()),
-        output_format = switch(
-        input$report_format,
-        PDF = rmarkdown::pdf_document(), HTML = rmarkdown::html_document(), Word = rmarkdown::word_document()
-      ))
+                               output_format = switch(
+                                 input$report_format,
+                                 PDF = rmarkdown::pdf_document(), HTML = rmarkdown::html_document(), Word = rmarkdown::word_document()
+                               ))
       file.rename(out, file)
     }
   )
-
+  
   
   
 })
