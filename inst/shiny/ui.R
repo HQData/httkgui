@@ -44,8 +44,8 @@ additional_parameters <- c(
 shiny::shinyUI(fluidPage(
 
   # Application title
-  titlePanel("TKPlate: interactive PBTK model platform"),
-
+  div(style = 'position:absolute; top:10px; right:10px; height:100px;', img(src='efsa_logo.png', height='60px')),
+  titlePanel("TKPlate: interactive PBTK modelling platform"),
   sidebarLayout(
     sidebarPanel(
       h4("Compound and species"),
