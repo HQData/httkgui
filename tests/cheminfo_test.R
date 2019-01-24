@@ -1,5 +1,0 @@
-library(httk)
-fub.zero.list <- get_cheminfo()
-no.fub.zero.list <- get_cheminfo(model='pbtk')
-length(fub.zero.list)
-length(no.fub.zero.list)
