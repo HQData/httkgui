@@ -131,16 +131,16 @@ solve_1comp <- function(chem.cas=NULL,
 
   if(is.null(dosing.matrix)){
     if(is.null(doses.per.day)){
-      out <- ode(y = state, times = times,func="derivs1comp", parms=parameters, method=method,rtol=rtol,atol=atol, dllname="httk",initfunc="initmod1comp", nout=length(Outputs1comp),outnames=Outputs1comp,...)
+      out <- ode(y = state, times = times,func="derivs1comp", parms=parameters, method=method,rtol=rtol,atol=atol, dllname="httkgui",initfunc="initmod1comp", nout=length(Outputs1comp),outnames=Outputs1comp,...)
     }else{
       dosing <- seq(start + 1/doses.per.day,end-1/doses.per.day,1/doses.per.day)
       length <- length(dosing)
       eventdata <- data.frame(var=rep('Agutlumen',length),time = round(dosing,8),value = rep(dose,length), method = rep("add",length))                          
-      out <- ode(y = state, times = times, func="derivs1comp", parms = parameters, method=method,rtol=rtol,atol=atol, dllname="httk",initfunc="initmod1comp", nout=length(Outputs1comp),outnames=Outputs1comp,events=list(data=eventdata),...)
+      out <- ode(y = state, times = times, func="derivs1comp", parms = parameters, method=method,rtol=rtol,atol=atol, dllname="httkgui",initfunc="initmod1comp", nout=length(Outputs1comp),outnames=Outputs1comp,events=list(data=eventdata),...)
     }
   }else{
     eventdata <- data.frame(var=rep('Agutlumen',length(dosing.times)),time = dosing.times,value = dose.vector, method = rep("add",length(dosing.times)))                          
-    out <- ode(y = state, times = times, func="derivs1comp", parms = parameters, method=method,rtol=rtol,atol=atol, dllname="httk",initfunc="initmod1comp", nout=length(Outputs1comp),outnames=Outputs1comp,events=list(data=eventdata),...)
+    out <- ode(y = state, times = times, func="derivs1comp", parms = parameters, method=method,rtol=rtol,atol=atol, dllname="httkgui",initfunc="initmod1comp", nout=length(Outputs1comp),outnames=Outputs1comp,events=list(data=eventdata),...)
   }
    
 

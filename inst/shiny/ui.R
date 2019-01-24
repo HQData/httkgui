@@ -55,9 +55,9 @@ shiny::shinyUI(fluidPage(
         ),
       conditionalPanel("input.use_add == 0",
           conditionalPanel("input.use_cas == 0", selectizeInput("compound", "Compound name", 
-                                                                httk::chem.physical_and_invitro.data$Compound)),
+                                                                httkgui::chem.physical_and_invitro.data$Compound)),
           conditionalPanel("input.use_cas == 1", selectizeInput("cas", "CAS", 
-                                                                httk::chem.physical_and_invitro.data$CAS))
+                                                                httkgui::chem.physical_and_invitro.data$CAS))
       ),
       conditionalPanel("input.use_add == 1", "Please define the compound to use in separate tab on the right"),
       selectInput("species", "Species", c("Human", "Rat", "???")),

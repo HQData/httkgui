@@ -25,7 +25,7 @@ sensitivity_test <- function(
                  func="derivs",
                  parms=param_values,
                  method="lsoda",rtol=1e-8,atol=1e-12,
-                 dllname="httk",initfunc="initmod",
+                 dllname="httkgui",initfunc="initmod",
                  nout=length(Outputs),outnames=Outputs)
       class(out) <- c('matrix','deSolve')
       sensitivity_result[[i]] <- out

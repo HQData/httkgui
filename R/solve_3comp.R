@@ -146,16 +146,16 @@ solve_3comp <- function(chem.name = NULL,
   
   if(is.null(dosing.matrix)){
     if(is.null(doses.per.day)){
-      out <- ode(y = state, times = times,func="derivs3comp", parms=parameters, method=method,rtol=rtol,atol=atol, dllname="httk",initfunc="initmod3comp", nout=length(Outputs3comp),outnames=Outputs3comp,...)
+      out <- ode(y = state, times = times,func="derivs3comp", parms=parameters, method=method,rtol=rtol,atol=atol, dllname="httkgui",initfunc="initmod3comp", nout=length(Outputs3comp),outnames=Outputs3comp,...)
     } else {
       dosing <- seq(start + 1/doses.per.day,end-1/doses.per.day,1/doses.per.day)
       length <- length(dosing)
       eventdata <- data.frame(var=rep('Agutlumen',length),time = round(dosing,8),value = rep(dose,length), method = rep("add",length))                          
-      out <- ode(y = state, times = times, func="derivs3comp", parms = parameters, method=method,rtol=rtol,atol=atol, dllname="httk",initfunc="initmod3comp", nout=length(Outputs3comp),outnames=Outputs3comp,events=list(data=eventdata),...)
+      out <- ode(y = state, times = times, func="derivs3comp", parms = parameters, method=method,rtol=rtol,atol=atol, dllname="httkgui",initfunc="initmod3comp", nout=length(Outputs3comp),outnames=Outputs3comp,events=list(data=eventdata),...)
     }  
   }else{
     eventdata <- data.frame(var=rep('Agutlumen',length(dosing.times)),time = dosing.times,value = dose.vector, method = rep("add",length(dosing.times)))
-    out <- ode(y = state, times = times, func="derivs3comp", parms = parameters, method=method,rtol=rtol,atol=atol, dllname="httk",initfunc="initmod3comp", nout=length(Outputs3comp),outnames=Outputs3comp,events=list(data=eventdata),...)
+    out <- ode(y = state, times = times, func="derivs3comp", parms = parameters, method=method,rtol=rtol,atol=atol, dllname="httkgui",initfunc="initmod3comp", nout=length(Outputs3comp),outnames=Outputs3comp,events=list(data=eventdata),...)
   }
   colnames(out)[[which(colnames(out)=='Cserum')]] <- 'Cplasma'
   

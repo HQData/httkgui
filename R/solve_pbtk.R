@@ -189,7 +189,7 @@ solve_pbtk <- function(chem.name = NULL,
                 times = times,
                 func=func_name, 
                 parms=parameters, 
-                method=method,rtol=rtol,atol=atol,dllname="httk",initfunc=init_name, 
+                method=method,rtol=rtol,atol=atol,dllname="httkgui",initfunc=init_name, 
                 nout=length(Outputs),outnames=Outputs))
   
   
@@ -200,7 +200,7 @@ solve_pbtk <- function(chem.name = NULL,
                  times = times,
                  func=func_name, 
                  parms=parameters, 
-                 method=method,rtol=rtol,atol=atol,dllname="httk",initfunc=init_name, 
+                 method=method,rtol=rtol,atol=atol,dllname="httkgui",initfunc=init_name, 
                  nout=length(Outputs),outnames=Outputs,...)
   } else{
       length <- length(seq(start + 1/doses.per.day,end-1/doses.per.day,1/doses.per.day))
@@ -208,7 +208,7 @@ solve_pbtk <- function(chem.name = NULL,
                               time = round(seq(start + 1/doses.per.day,end-1/doses.per.day,1/doses.per.day),8),
                               value = rep(dose,length), method = rep("add",length))
       out <- ode(y = state, times = times, func=func_name, parms = parameters,
-                 method=method,rtol=rtol,atol=atol, dllname="httk",initfunc=init_name, 
+                 method=method,rtol=rtol,atol=atol, dllname="httkgui",initfunc=init_name, 
                  nout=length(Outputs),outnames=Outputs,events=list(data=eventdata),...)
     }
   } else{
@@ -222,7 +222,7 @@ solve_pbtk <- function(chem.name = NULL,
                method = method,
                rtol = rtol,
                atol = atol, 
-               dllname = "httk",
+               dllname = "httkgui",
                initfunc = init_name, 
                nout = length(Outputs),
                outnames = Outputs,events=list(data=eventdata),

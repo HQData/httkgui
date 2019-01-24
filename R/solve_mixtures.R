@@ -20,7 +20,7 @@ solve_mixtures <- function(parametersA, parametersB, parametersint,
              times = inputA$times,
              func  = "derivs_mixture",
              parms = c(inputA$parms, inputB$parms, parametersint),
-             method=method,rtol=rtol,atol=atol,dllname="httk",initfunc="initmod_mixture",
+             method=method,rtol=rtol,atol=atol,dllname="httkgui",initfunc="initmod_mixture",
              nout=18, outnames = c(paste0("C1_", Outputs), paste0("C2_", Outputs)))
   
 

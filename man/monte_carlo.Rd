@@ -68,7 +68,7 @@ John Wambaugh
 \examples{
 # Fig 1 SimCYP vs. our predictions:
 \dontrun{
-library(httk)
+library(httkgui)
 library(ggplot2)
 
 vary.params <- list(BW=0.3)
